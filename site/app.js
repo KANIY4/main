@@ -103,6 +103,27 @@
     Moon:["Satellite","3,474 km across","384,400 km away","Earth's only moon"] };
   var highlight=null, currentDetail=null;
 
+  /* live ISS tracking */
+  var ISS={lat:0,lon:0,altkm:408,vel:0,vis:"",ok:false}, issPt=null;
+  function lookAngleISS(latDeg,lonDeg,satLatDeg,satLonDeg,satAltKm){
+    var Re=6378.137;
+    function toECEF(latD,lonD,altKm){ var lat=latD*D2R, lon=lonD*D2R, r=Re+altKm;
+      return [r*Math.cos(lat)*Math.cos(lon), r*Math.cos(lat)*Math.sin(lon), r*Math.sin(lat)]; }
+    var obs=toECEF(latDeg,lonDeg,0), sat=toECEF(satLatDeg,satLonDeg,satAltKm);
+    var dx=sat[0]-obs[0], dy=sat[1]-obs[1], dz=sat[2]-obs[2], lat=latDeg*D2R, lon=lonDeg*D2R;
+    var east=-Math.sin(lon)*dx+Math.cos(lon)*dy;
+    var north=-Math.sin(lat)*Math.cos(lon)*dx-Math.sin(lat)*Math.sin(lon)*dy+Math.cos(lat)*dz;
+    var up=Math.cos(lat)*Math.cos(lon)*dx+Math.cos(lat)*Math.sin(lon)*dy+Math.sin(lat)*dz;
+    var range=Math.sqrt(east*east+north*north+up*up);
+    return { alt:Math.asin(up/range)*R2D, az:rev(Math.atan2(east,north)*R2D) };
+  }
+  function fetchISS(){
+    fetch("https://api.wheretheiss.at/v1/satellites/25544").then(function(r){return r.json();}).then(function(d){
+      ISS.lat=d.latitude; ISS.lon=d.longitude; ISS.altkm=d.altitude; ISS.vel=d.velocity; ISS.vis=d.visibility; ISS.ok=true;
+      dirty=true; renderTrack();
+    }).catch(function(){});
+  }
+
   function loadData(){
     return Promise.all([ fetch(STAR_URL).then(function(r){return r.json();}), fetch(LINE_URL).then(function(r){return r.json();}) ])
     .then(function(res){
@@ -159,12 +180,26 @@
   document.getElementById("nowBtn").addEventListener("click",function(){ timeOffset=0; animating=false; timeSlider.value=0; document.getElementById("playBtn").textContent="▶"; dirty=true; updateTimeLabel(); updatePanels(); });
   document.getElementById("playBtn").addEventListener("click",function(){ animating=!animating; this.textContent=animating?"⏸":"▶"; });
   document.getElementById("resetView").addEventListener("click",function(){ rotOffset=0; dirty=true; });
-  document.getElementById("fsBtn").addEventListener("click",function(){
-    var h=document.getElementById("hero");
-    if(!document.fullscreenElement){ (h.requestFullscreen||h.webkitRequestFullscreen||function(){}).call(h); }
-    else { (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); }
+  var pageEl=document.querySelector(".page"), heroIn=document.querySelector(".hero-in"), fsBtn=document.getElementById("fsBtn");
+  function setImmersive(on){
+    pageEl.classList.toggle("immersive",on);
+    fsBtn.textContent = on ? "⤡" : "⛶";
+    fsBtn.title = on ? "Exit full view" : "Full view";
+    if(on) hudShow(); else { clearTimeout(hudTimer); heroIn.classList.remove("hud-idle"); }
+    setTimeout(resize,60);
+  }
+  fsBtn.addEventListener("click",function(){
+    var go=function(){
+      if(!document.fullscreenElement){ (document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen||function(){}).call(document.documentElement); setImmersive(true); }
+      else { (document.exitFullscreen||document.webkitExitFullscreen||function(){}).call(document); setImmersive(false); }
+    };
+    if(document.startViewTransition) document.startViewTransition(go); else go();
   });
-  document.addEventListener("fullscreenchange",function(){ setTimeout(resize,60); });
+  document.addEventListener("fullscreenchange",function(){ if(!document.fullscreenElement) setImmersive(false); setTimeout(resize,60); });
+  var hudTimer=null;
+  function hudShow(){ heroIn.classList.remove("hud-idle"); clearTimeout(hudTimer);
+    if(pageEl.classList.contains("immersive")) hudTimer=setTimeout(function(){ heroIn.classList.add("hud-idle"); },3200); }
+  ["pointermove","pointerdown","keydown"].forEach(function(ev){ document.addEventListener(ev,function(){ if(pageEl.classList.contains("immersive")) hudShow(); }); });
 
   var canvas=document.getElementById("sky"), ctx=canvas.getContext("2d");
   var W=0,H=0,cx=0,cy=0,RAD=0,DPR=Math.min(devicePixelRatio||1,2);
@@ -231,6 +266,9 @@
       if(pa.alt>-0.5){ var pq=proj(pos.ra,pos.dec,lst,lat); bodyPts.push({x:pq.x,y:pq.y,alt:pa.alt,az:pa.az,ra:pos.ra,dec:pos.dec,kind:"planet",label:pl[0],sub:"Planet",color:pl[1],rad:4}); } });
     hoverStars.length=0;
     NAMED.forEach(function(n){ var pa=altaz(n[1],n[2],lat,lst); if(pa.alt>-0.5){ var pq=proj(n[1],n[2],lst,lat); hoverStars.push({x:pq.x,y:pq.y,name:n[0],mag:n[3],alt:pa.alt,az:pa.az,ra:n[1],dec:n[2]}); } });
+    issPt=null;
+    if(ISS.ok){ var ila=lookAngleISS(lat,state.lon,ISS.lat,ISS.lon,ISS.altkm);
+      if(ila.alt>-2){ var iang=(ila.az+rotOffset)*D2R, ir=(1-ila.alt/90)*RAD; issPt={x:cx-ir*Math.sin(iang), y:cy-ir*Math.cos(iang), alt:ila.alt, az:ila.az}; } }
     sky=skyPalette(sp.alt, now.getHours()); periodBadge.textContent=sky.period;
     updateClock(now);
     window.__diag={stars:starPts.length,segs:lineSegs.length,bodies:bodyPts.length,named:hoverStars.length,period:sky.period,rot:Math.round(rotOffset),off:timeOffset,
@@ -301,8 +339,10 @@
     var btn3d = o.v3type ? '<button class="btn mini solid" id="view3dBtn" style="margin-top:.9rem; width:100%; justify-content:center">Fly to in 3D ↗</button>' : '';
     var explainUI='<button class="btn mini" id="explainBtn" style="margin-top:.8rem; width:100%; justify-content:center">✨ Explain this</button><div class="explain" id="explainOut"></div>';
     var cg=contextGear(o);
+    var img=objImage(o);
+    var thumb = img ? ('<img class="thumb" src="'+img+'" alt="" loading="lazy" onerror="this.remove()">') : '';
     currentDetail=o;
-    detailBody.innerHTML='<h3>'+o.title+'</h3><div class="dk">'+o.kind+'</div>'+rows+scope+facts+explainUI+cg+btn3d;
+    detailBody.innerHTML=thumb+'<h3>'+o.title+'</h3><div class="dk">'+o.kind+'</div>'+rows+scope+facts+explainUI+cg+btn3d;
     detail.classList.add("show");
     var vb=document.getElementById("view3dBtn"); if(vb) vb.addEventListener("click",function(){ open3D(o); });
     var eb=document.getElementById("explainBtn"); if(eb) eb.addEventListener("click",function(){ explain(o); });
@@ -314,6 +354,8 @@
     var tt=((px-x1)*dx+(py-y1)*dy)/l2; tt=Math.max(0,Math.min(1,tt)); return Math.hypot(px-(x1+tt*dx),py-(y1+tt*dy)); }
   function findHit(mx,my){
     var i;
+    if(issPt && Math.hypot(mx-issPt.x,my-issPt.y)<14) return { title:"ISS", kind:"Satellite", alt:issPt.alt, az:issPt.az,
+      facts:["Altitude ~"+Math.round(ISS.altkm)+" km","Speed ~"+Math.round(ISS.vel)+" km/h","Currently "+(ISS.vis||"—")] };
     for(i=0;i<bodyPts.length;i++){ var b=bodyPts[i]; if(Math.hypot(mx-b.x,my-b.y)<b.rad+11)
       return { title:b.label, kind:b.kind==="planet"?"Planet":(b.kind==="moon"?"Moon":"Sun"), ra:b.ra,dec:b.dec,alt:b.alt,az:b.az, v3type:(b.kind==="planet"?"planet:"+b.label:b.kind), facts:FACTS[b.label] }; }
     for(i=0;i<hoverStars.length;i++){ var st=hoverStars[i]; if(Math.hypot(mx-st.x,my-st.y)<11)
@@ -369,6 +411,8 @@
       else { ctx.beginPath(); ctx.arc(b.x,b.y,b.rad,0,6.2832); ctx.fillStyle=b.color; ctx.shadowColor=b.color; ctx.shadowBlur=10; ctx.fill(); ctx.shadowBlur=0;
         ctx.beginPath(); ctx.arc(b.x,b.y,b.rad+2.5,0,6.2832); ctx.strokeStyle=b.color; ctx.globalAlpha=.4; ctx.lineWidth=1; ctx.stroke(); ctx.globalAlpha=1; }
       ctx.fillStyle=dark?col("--ink"):"#1a2340"; ctx.fillText(b.label,b.x+b.rad+5,b.y); }
+    if(issPt && issPt.alt>-2){ ctx.beginPath(); ctx.arc(issPt.x,issPt.y,3.4,0,6.2832); ctx.fillStyle="#8fe3ff"; ctx.shadowColor="#8fe3ff"; ctx.shadowBlur=8; ctx.fill(); ctx.shadowBlur=0;
+      ctx.fillStyle=dark?col("--ink"):"#1a2340"; ctx.fillText("ISS",issPt.x+8,issPt.y); }
     if(highlight){ var hp=proj(highlight.ra,highlight.dec,lstf(julian(nowDate()),state.lon),state.lat);
       if(hp.alt>-2){ var pr=11+3*Math.sin(t*3); ctx.beginPath(); ctx.arc(hp.x,hp.y,pr,0,6.2832); ctx.strokeStyle=col("--accent"); ctx.lineWidth=1.6; ctx.stroke();
         ctx.beginPath(); ctx.moveTo(hp.x-pr-5,hp.y); ctx.lineTo(hp.x-pr+1,hp.y); ctx.moveTo(hp.x+pr-1,hp.y); ctx.lineTo(hp.x+pr+5,hp.y); ctx.stroke();
@@ -462,6 +506,35 @@
   var texCache={};
   function loadTex(key){ var T=TX.THREE; if(texCache[key])return texCache[key];
     var t=new T.TextureLoader().load(TEXURL[key]); t.colorSpace=T.SRGBColorSpace; t.anisotropy=4; texCache[key]=t; return t; }
+
+  /* object images for info cards */
+  var WM="https://commons.wikimedia.org/wiki/Special:FilePath/";
+  var IMG={
+    Sun:TEXURL.sun, Moon:TEXURL.moon, Mercury:TEXURL.mercury, Venus:TEXURL.venus, Mars:TEXURL.mars, Jupiter:TEXURL.jupiter, Saturn:TEXURL.saturn,
+    ISS:WM+"International_Space_Station_after_undocking_of_STS-132.jpg?width=480",
+    Sirius:WM+"Sirius_A_and_B_Hubble_photo.jpg?width=480",
+    Betelgeuse:WM+"Betelgeuse.jpg?width=480",
+    "M31 Andromeda Galaxy":WM+"Andromeda_Galaxy_(with_h-alpha).jpg?width=480",
+    "M42 Orion Nebula":WM+"Orion_Nebula_-_Hubble_2006_mosaic_18000.jpg?width=480",
+    "M45 Pleiades":WM+"Pleiades_large.jpg?width=480",
+    "M13 Hercules Cluster":WM+"Messier_13.jpg?width=480",
+    "M57 Ring Nebula":WM+"M57_The_Ring_Nebula.JPG?width=480",
+    "M27 Dumbbell Nebula":WM+"M27_-_Dumbbell_Nebula.jpg?width=480",
+    "M8 Lagoon Nebula":WM+"Lagoon_Nebula.jpg?width=480",
+    "M51 Whirlpool Galaxy":WM+"Whirlpool_Galaxy.jpg?width=480",
+    "M81 Bode's Galaxy":WM+"Messier_81.jpg?width=480",
+    "M104 Sombrero Galaxy":WM+"M104_ngc4594_sombrero_galaxy_hi-res.jpg?width=480",
+    "M1 Crab Nebula":WM+"Crab_Nebula.jpg?width=480",
+    "M44 Beehive Cluster":WM+"Beehive_cluster.jpg?width=480",
+    "M16 Eagle Nebula":WM+"Eagle_Nebula.jpg?width=480",
+    "M22 Sagittarius Cluster":WM+"Messier22.jpg?width=480",
+    "M7 Ptolemy Cluster":WM+"Messier_7.jpg?width=480"
+  };
+  function objImage(o){
+    if(IMG[o.title]) return IMG[o.title];
+    if(o.v3type && o.v3type.indexOf("planet:")===0){ var pn=o.v3type.split(":")[1]; return TEXURL[pn]||null; }
+    return null;
+  }
   function ensureThree(){ if(TX.THREE) return Promise.resolve(TX);
     return Promise.all([ import("three"),
       import("three/addons/postprocessing/EffectComposer.js"), import("three/addons/postprocessing/RenderPass.js"),
@@ -668,6 +741,121 @@
   var _po=document.getElementById("posterOrder"); if(_po) _po.addEventListener("click",orderPrint);
   document.addEventListener("keydown",function(e){ if(e.key==="Escape"&&posterEl&&posterEl.classList.contains("show"))closePoster(); });
   renderGear();
+
+  /* ===== live hub: news, watch, tracking, observing, events ===== */
+  [].forEach.call(document.querySelectorAll(".tab"),function(btn){
+    btn.addEventListener("click",function(){
+      [].forEach.call(document.querySelectorAll(".tab"),function(b){b.setAttribute("aria-selected",b===btn?"true":"false");});
+      [].forEach.call(document.querySelectorAll(".tabpanel"),function(p){p.classList.remove("show");});
+      var id="tab-"+btn.getAttribute("data-tab"), panel=document.getElementById(id); if(panel)panel.classList.add("show");
+      if(id==="tab-obs") renderObs(); if(id==="tab-events") renderEvents();
+    });
+  });
+
+  function renderNews(list){
+    var el=document.getElementById("newsGrid"); if(!el) return;
+    if(!list||!list.length){ el.innerHTML='<div class="hub-empty">Couldn\'t load news right now.</div>'; return; }
+    el.innerHTML=list.slice(0,6).map(function(a){
+      var img=a.image_url?('<img src="'+a.image_url+'" alt="" loading="lazy" onerror="this.remove()">'):'';
+      var title=document.createElement("div"); title.textContent=a.title||""; // escape via textContent, read back safely
+      return '<a class="news-card" href="'+a.url+'" target="_blank" rel="noopener">'+img+'<div class="nb"><div class="nt">'+title.innerHTML+'</div><div class="ns">'+(a.news_site||"")+'</div></div></a>';
+    }).join("");
+  }
+  function fetchNews(){
+    fetch("https://api.spaceflightnewsapi.net/v4/articles/?limit=6").then(function(r){return r.json();}).then(function(d){ renderNews(d.results); }).catch(function(){ renderNews([]); });
+  }
+  fetchNews(); setInterval(fetchNews,60000);
+
+  var LAUNCHES=[];
+  function fetchLaunches(){
+    fetch("https://ll.thespacedevs.com/2.2.0/launch/upcoming/?limit=5&format=json").then(function(r){return r.json();}).then(function(d){ LAUNCHES=d.results||[]; renderTrack(); }).catch(function(){ renderTrack(); });
+  }
+  fetchLaunches(); setInterval(fetchLaunches,300000);
+
+  function renderTrack(){
+    var el=document.getElementById("trackGrid"); if(!el) return;
+    var issCard='<div class="track-card"><h4>🛰️ ISS · live position</h4>'
+      +(ISS.ok ? ('<div class="tr"><span>Latitude</span><span>'+ISS.lat.toFixed(2)+'°</span></div>'
+        +'<div class="tr"><span>Longitude</span><span>'+ISS.lon.toFixed(2)+'°</span></div>'
+        +'<div class="tr"><span>Altitude</span><span>'+Math.round(ISS.altkm)+' km</span></div>'
+        +'<div class="tr"><span>Speed</span><span>'+Math.round(ISS.vel)+' km/h</span></div>'
+        +'<div class="tr"><span>From your spot</span><span>'+(issPt&&issPt.alt>0?('visible · alt '+issPt.alt.toFixed(0)+'°'):'below horizon')+'</span></div>')
+        : '<div class="hub-empty">Loading…</div>')
+      +'</div>';
+    var launchCards = LAUNCHES.length ? LAUNCHES.map(function(l){
+        var d=new Date(l.net), when=isNaN(d)?"TBD":d.toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+        var abbrev=(l.status&&l.status.abbrev)||"—", go=(abbrev==="Go"||abbrev==="TBC");
+        var vid=(l.vidURLs&&l.vidURLs[0]&&l.vidURLs[0].url)||null;
+        var nm=document.createElement("div"); nm.textContent=l.name||"Launch";
+        var prov=document.createElement("div"); prov.textContent=(l.launch_service_provider&&l.launch_service_provider.name)||"—";
+        return '<div class="track-card"><h4>🚀 '+nm.innerHTML+'</h4>'
+          +'<div class="tr"><span>Provider</span><span>'+prov.innerHTML+'</span></div>'
+          +'<div class="tr"><span>When</span><span>'+when+'</span></div>'
+          +'<div class="tr"><span>Status</span><span class="badge2'+(go?' go':'')+'">'+abbrev+'</span></div>'
+          +(vid?('<div class="tr"><span>Stream</span><span><a href="'+vid+'" target="_blank" rel="noopener" style="color:var(--cool)">Watch ↗</a></span></div>'):'')
+          +'</div>';
+      }).join("") : '<div class="hub-empty">Loading launches…</div>';
+    el.innerHTML=issCard+launchCards;
+  }
+
+  var OBS=[
+    {n:"Hubble Space Telescope", d:"In continuous operation since 1990, cycling through deep-field imaging, exoplanet atmospheres and stellar evolution targets on a rolling schedule set months in advance.", l:"https://www.stsci.edu/instruments/current-observing"},
+    {n:"James Webb Space Telescope", d:"Observing in infrared from 1.5M km away (L2), split between guaranteed-time, general-observer and director's-discretionary programs. See the official live pointing tracker.", l:"https://www.jwst.nasa.gov/content/webbLaunch/whereIsWebb.html"},
+    {n:"Very Large Telescope (ESO)", d:"Four 8.2m units in Chile's Atacama Desert running a nightly queue of spectroscopy and imaging across the southern sky.", l:"https://www.eso.org/public/teles-instr/paranal-observatory/vlt/"},
+    {n:"Keck Observatory", d:"Twin 10m telescopes atop Mauna Kea, Hawaii — among the largest optical/infrared telescopes on Earth.", l:"https://keckobservatory.org/"}
+  ];
+  function renderObs(){
+    var el=document.getElementById("obsGrid"); if(!el||el.dataset.done) return; el.dataset.done="1";
+    el.innerHTML=OBS.map(function(o){return '<div class="obs-card"><h4>'+o.n+'</h4><p>'+o.d+'</p><a href="'+o.l+'" target="_blank" rel="noopener">Official tracker ↗</a></div>';}).join("");
+  }
+
+  var SHOWERS=[["Quadrantids",0,4],["Lyrids",3,22],["Eta Aquariids",4,5],["Perseids",7,12],["Orionids",9,21],["Leonids",10,17],["Geminids",11,14],["Ursids",11,22]];
+  function nextOccurrence(m,d){ var now=new Date(), y=now.getFullYear(), dt=new Date(y,m,d,12); if(dt<now) dt=new Date(y+1,m,d,12); return dt; }
+  function renderEvents(){
+    var el=document.getElementById("evList"); if(!el||el.dataset.done) return; el.dataset.done="1";
+    var items=SHOWERS.map(function(s){ return {name:s[0]+" meteor shower", date:nextOccurrence(s[1],s[2])}; });
+    items.sort(function(a,b){return a.date-b.date;}); items=items.slice(0,6);
+    el.innerHTML=items.map(function(it){ return '<div class="ev-row"><span class="ek">'+it.name+'</span><span class="ed">'+it.date.toLocaleDateString(undefined,{month:"long",day:"numeric"})+'</span></div>'; }).join("");
+  }
+
+  fetchISS(); setInterval(fetchISS,8000);
+
+  /* ===== AI ask FAB (limited free questions, Pro gate) ===== */
+  var askFab=document.getElementById("askFab"), askPanel=document.getElementById("askPanel"), askBody=document.getElementById("askBody"),
+      askInput=document.getElementById("askInput"), askSend=document.getElementById("askSend"), askLimit=document.getElementById("askLimit");
+  var ASK_FREE_LIMIT=5;
+  function askCount(){ return parseInt(localStorage.getItem("meridianAskCount")||"0",10); }
+  function askIsPro(){ return localStorage.getItem("meridianPro")==="1"; }
+  function renderAskLimit(){
+    if(askIsPro()){ askLimit.textContent="Pro · unlimited questions"; return; }
+    var left=Math.max(0,ASK_FREE_LIMIT-askCount());
+    askLimit.textContent = left>0 ? (left+" free question"+(left===1?"":"s")+" left") : "Free questions used — see Pro for unlimited";
+  }
+  renderAskLimit();
+  askFab.addEventListener("click",function(){ askPanel.classList.toggle("show"); if(askPanel.classList.contains("show")) askInput.focus(); });
+  document.getElementById("askClose").addEventListener("click",function(){ askPanel.classList.remove("show"); });
+  function askAdd(q,htmlAnswer){ var row=document.createElement("div"), qd=document.createElement("div"), ad=document.createElement("div");
+    qd.className="aq"; qd.textContent=q; ad.className="aa"; ad.innerHTML=htmlAnswer; row.appendChild(qd); row.appendChild(ad);
+    askBody.appendChild(row); askBody.scrollTop=askBody.scrollHeight; return ad; }
+  function sendAsk(){
+    var q=askInput.value.trim(); if(!q) return;
+    if(!askIsPro() && askCount()>=ASK_FREE_LIMIT){ askAdd(q,"You've used your free questions. <a href=\"#pricing\" style=\"color:var(--cool)\">See Meridian Pro</a> for unlimited answers."); askInput.value=""; return; }
+    askInput.value=""; askInput.disabled=true; askSend.disabled=true;
+    var ad=askAdd(q,"…");
+    function done(text){ ad.textContent=text; askInput.disabled=false; askSend.disabled=false; }
+    fetch("/api/ask",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({question:q,context:currentDetail?currentDetail.title:null})})
+      .then(function(r){return r.json();})
+      .then(function(d){ done(d&&d.text?d.text:"The AI tutor isn't configured yet — the site owner needs to add an API key."); if(!askIsPro()){ localStorage.setItem("meridianAskCount",String(askCount()+1)); renderAskLimit(); } })
+      .catch(function(){ done("Couldn't reach the AI tutor — try again in a moment."); });
+  }
+  askSend.addEventListener("click",sendAsk);
+  askInput.addEventListener("keydown",function(e){ if(e.key==="Enter") sendAsk(); });
+
+  /* ===== pro modal ===== */
+  var proBtn=document.getElementById("proBtn"), proModal=document.getElementById("proModal");
+  if(proBtn) proBtn.addEventListener("click",function(){ proModal.classList.add("show"); });
+  document.getElementById("proModalClose").addEventListener("click",function(){ proModal.classList.remove("show"); });
+  proModal.addEventListener("click",function(e){ if(e.target===proModal) proModal.classList.remove("show"); });
 
   resize(); requestAnimationFrame(draw);
   loadData().then(function(){ dirty=true; updatePanels(); updateTimeLabel(); SIDX=buildIndex(); }).catch(function(){ locStatus.innerHTML="Could not load star catalogue (offline?)."; });

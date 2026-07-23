@@ -223,6 +223,93 @@
   .poster-wrap{position:absolute; inset:56px 0 0; display:flex; align-items:center; justify-content:center; padding:1rem; overflow:auto}
   #posterCanvas{max-width:min(94vw,620px); max-height:calc(100vh - 90px); box-shadow:var(--shadow); border-radius:6px; background:#080c1e}
   .v3d-top .row-btns{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center}
+
+  /* immersive fullscreen mode */
+  .page.immersive header.nav,.page.immersive #tonight,.page.immersive #whatsup,.page.immersive #hub,.page.immersive #pricing,.page.immersive .finale,.page.immersive footer{display:none}
+  .page.immersive .hero{min-height:100vh}
+  .page.immersive .hero h1,.page.immersive .hero p.lede,.page.immersive .hint,.page.immersive .controls{display:none}
+  .hero-in{transition:opacity .5s ease}
+  .hero-in.hud-idle{opacity:0; pointer-events:none}
+  @media (prefers-reduced-motion:no-preference){ .page.immersive .hero{animation:immersivein .5s ease} }
+  @keyframes immersivein{from{opacity:.5; transform:scale(1.015)} to{opacity:1; transform:none}}
+
+  /* object image on info card */
+  .detail .thumb{display:block; width:100%; height:130px; object-fit:cover; border-radius:10px; background:var(--bg-2)}
+
+  /* live hub: tabs, news, watch, tracking, observing, events */
+  .tabs{display:flex; flex-wrap:wrap; gap:.5rem; margin-top:1.2rem}
+  .tab{font:inherit; font-family:var(--mono); font-size:.76rem; letter-spacing:.04em; text-transform:uppercase; cursor:pointer;
+    padding:.5rem 1rem; border-radius:999px; border:1px solid var(--line-strong); background:transparent; color:var(--ink-soft)}
+  .tab[aria-selected="true"]{background:var(--accent); color:#141007; border-color:var(--accent)}
+  .tabpanel{display:none; margin-top:1.6rem}
+  .tabpanel.show{display:block}
+  .hub-empty{font-family:var(--mono); font-size:var(--s-1); color:var(--ink-faint); padding:.4rem 0}
+  .news-grid,.obs-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1rem}
+  .news-card{display:flex; flex-direction:column; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--bg-3);
+    text-decoration:none; transition:border-color .2s,transform .2s}
+  .news-card:hover{border-color:var(--accent); transform:translateY(-2px)}
+  .news-card img{width:100%; height:130px; object-fit:cover; background:var(--bg-2)}
+  .news-card .nb{padding:.8rem .9rem}
+  .news-card .nt{color:var(--ink); font-family:var(--serif); font-size:1rem; line-height:1.35}
+  .news-card .ns{font-family:var(--mono); font-size:.68rem; color:var(--accent); text-transform:uppercase; letter-spacing:.05em; margin-top:.45rem}
+  .live-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem}
+  .live-card{border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--bg-3)}
+  .live-card .lv-frame{position:relative; padding-top:56.25%}
+  .live-card iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .live-card .lv-t{padding:.7rem .9rem; font-family:var(--serif); color:var(--ink)}
+  .live-card .lv-t a{font-family:var(--mono); font-size:.7rem; color:var(--cool); text-decoration:none; display:block; margin-top:.25rem}
+  .track-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:1rem}
+  .track-card{border:1px solid var(--line); border-radius:13px; padding:1rem 1.1rem; background:var(--bg-3)}
+  .track-card h4{margin:0; font-size:1.02rem}
+  .track-card .tr{display:flex; justify-content:space-between; gap:.6rem; font-family:var(--mono); font-size:.76rem; padding:.32rem 0;
+    border-top:1px solid var(--line); margin-top:.4rem; color:var(--ink-soft)}
+  .track-card .tr:first-of-type{margin-top:.6rem}
+  .badge2{font-family:var(--mono); font-size:.66rem; text-transform:uppercase; letter-spacing:.05em; padding:.14rem .5rem; border-radius:999px;
+    background:var(--line); color:var(--ink-soft)}
+  .badge2.go{background:var(--accent); color:#141007}
+  .obs-card{border:1px solid var(--line); border-radius:13px; padding:1.1rem 1.2rem; background:var(--bg-3)}
+  .obs-card h4{margin:0; font-size:1.08rem}
+  .obs-card p{margin:.5rem 0 0; font-size:.85rem; line-height:1.55}
+  .obs-card a{font-family:var(--mono); font-size:.7rem; color:var(--cool); text-decoration:none; display:inline-block; margin-top:.6rem}
+  .ev-list{display:flex; flex-direction:column; gap:.5rem}
+  .ev-row{display:flex; justify-content:space-between; gap:1rem; align-items:center; padding:.8rem 1.1rem; border:1px solid var(--line);
+    border-radius:11px; background:var(--bg-3)}
+  .ev-row .ek{font-family:var(--serif); color:var(--ink)}
+  .ev-row .ed{font-family:var(--mono); font-size:.76rem; color:var(--accent)}
+
+  /* AI ask FAB */
+  .askfab{position:fixed; right:18px; bottom:18px; z-index:95; width:52px; height:52px; border-radius:50%; border:1px solid var(--line-strong);
+    background:var(--accent); color:#141007; font-size:1.25rem; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:var(--shadow)}
+  .askpanel{position:fixed; right:18px; bottom:82px; z-index:95; width:min(340px,calc(100vw - 36px)); max-height:min(64vh,520px); display:none;
+    flex-direction:column; background:var(--bg-3); border:1px solid var(--line-strong); border-radius:16px; box-shadow:var(--shadow); overflow:hidden}
+  .askpanel.show{display:flex}
+  .ask-top{display:flex; align-items:center; justify-content:space-between; padding:.7rem .9rem; border-bottom:1px solid var(--line)}
+  .ask-top span{font-family:var(--serif); color:var(--ink)}
+  .ask-body{padding:.9rem; overflow:auto; flex:1; font-size:.85rem; line-height:1.55; color:var(--ink-soft)}
+  .ask-body .aq{color:var(--ink); font-family:var(--serif); margin-top:.7rem}
+  .ask-body .aq:first-child{margin-top:0}
+  .ask-body .aa{margin-top:.3rem}
+  .ask-limit{font-family:var(--mono); font-size:.68rem; color:var(--ink-faint); padding:0 .9rem .7rem}
+  .ask-foot{padding:.7rem .8rem; border-top:1px solid var(--line); display:flex; gap:.5rem}
+  .ask-foot input{flex:1; font:inherit; font-family:var(--mono); font-size:.82rem; padding:.5rem .7rem; border-radius:999px;
+    border:1px solid var(--line-strong); background:var(--bg-2); color:var(--ink)}
+  @media (max-width:640px){ .askpanel{right:8px; left:8px; width:auto; bottom:78px} .askfab{right:12px; bottom:12px} }
+
+  /* pricing / pro */
+  .price-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:1.1rem; margin-top:1.6rem}
+  .price-card{border:1px solid var(--line); border-radius:16px; padding:1.4rem 1.3rem; background:var(--bg-3)}
+  .price-card.pro{border-color:var(--accent); background:linear-gradient(160deg,var(--bg-3),color-mix(in srgb,var(--accent) 8%,var(--bg-3)))}
+  .price-card h3{margin:0; font-size:1.28rem}
+  .price-card .pr{font-family:var(--serif); color:var(--ink); font-size:1.9rem; margin-top:.5rem}
+  .price-card .pr small{font-family:var(--mono); font-size:.68rem; color:var(--ink-faint)}
+  .price-card ul{list-style:none; margin:1rem 0 0; padding:0; display:flex; flex-direction:column; gap:.5rem; font-size:.85rem; color:var(--ink-soft)}
+  .price-card ul li::before{content:"✓ "; color:var(--accent)}
+  .promodal{position:fixed; inset:0; z-index:150; background:rgba(5,7,15,.6); display:none; align-items:center; justify-content:center; padding:1rem}
+  .promodal.show{display:flex}
+  .promodal .pm-box{max-width:400px; width:100%; background:var(--bg-3); border:1px solid var(--line-strong); border-radius:16px;
+    padding:1.6rem; box-shadow:var(--shadow); position:relative}
+  .promodal .pm-box h3{margin:0 0 .6rem}
+  .promodal .pm-box .x{position:absolute; top:.8rem; right:.9rem; cursor:pointer; background:none; border:none; color:var(--ink-faint); font-size:1.3rem}
 </style>
 
 </head>
@@ -237,7 +324,7 @@
           <circle cx="12" cy="22" r="1.4" fill="var(--accent)"/>
         </svg> Meridian
       </span>
-      <nav class="nav-links"><a href="#tonight">Tonight</a><a href="#whatsup">What's up</a></nav>
+      <nav class="nav-links"><a href="#tonight">Tonight</a><a href="#whatsup">What's up</a><a href="#hub">Live hub</a><a href="#pricing">Pro</a></nav>
       <button class="btn toggle" id="themeBtn" aria-label="Switch theme" title="Switch theme">
         <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></svg>
       </button>
@@ -315,6 +402,33 @@
     </div>
   </section>
 
+  <section id="hub">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">The feed · live</span>
+        <h2>Everything happening in space, right now.</h2>
+        <p>News, live launches, satellite tracking, active observatories, and what's coming up — refreshed automatically.</p>
+      </div>
+      <div class="tabs reveal" role="tablist" aria-label="Live hub sections">
+        <button class="tab" data-tab="news" aria-selected="true" role="tab">News</button>
+        <button class="tab" data-tab="watch" aria-selected="false" role="tab">Watch live</button>
+        <button class="tab" data-tab="track" aria-selected="false" role="tab">Tracking</button>
+        <button class="tab" data-tab="obs" aria-selected="false" role="tab">Observing now</button>
+        <button class="tab" data-tab="events" aria-selected="false" role="tab">Upcoming</button>
+      </div>
+      <div class="tabpanel show reveal" id="tab-news"><div class="news-grid" id="newsGrid"><div class="hub-empty">Loading astronomy news…</div></div></div>
+      <div class="tabpanel reveal" id="tab-watch">
+        <div class="live-grid">
+          <div class="live-card"><div class="lv-frame"><iframe src="https://www.youtube.com/embed/live_stream?channel=UCLA_DiR1FfKNvjuUpBHmylQ" title="NASA live" loading="lazy" allow="autoplay; encrypted-media" allowfullscreen></iframe></div><div class="lv-t">NASA TV · live<a href="https://www.youtube.com/@NASA/live" target="_blank" rel="noopener">Open on YouTube ↗</a></div></div>
+          <div class="live-card"><div class="lv-frame"><iframe src="https://www.youtube.com/embed/live_stream?channel=UCtI0Hodo5o5dUb67FeUjDeA" title="SpaceX live" loading="lazy" allow="autoplay; encrypted-media" allowfullscreen></iframe></div><div class="lv-t">SpaceX · live<a href="https://www.youtube.com/@SpaceX/live" target="_blank" rel="noopener">Open on YouTube ↗</a></div></div>
+        </div>
+      </div>
+      <div class="tabpanel reveal" id="tab-track"><div class="track-grid" id="trackGrid"><div class="hub-empty">Loading live tracking…</div></div></div>
+      <div class="tabpanel reveal" id="tab-obs"><div class="news-grid" id="obsGrid"></div></div>
+      <div class="tabpanel reveal" id="tab-events"><div class="ev-list" id="evList"></div></div>
+    </div>
+  </section>
+
   <section id="shop">
     <div class="wrap">
       <div class="head reveal">
@@ -333,6 +447,29 @@
       </div>
       <div class="gear-grid reveal" id="gearGrid"></div>
       <p class="disc">Some links are affiliate links — if you buy through them, Meridian may earn a small commission at no extra cost to you.</p>
+    </div>
+  </section>
+
+  <section id="pricing">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Go further</span>
+        <h2>Free for everyone. Pro for the curious.</h2>
+        <p>Meridian is free to use, no account needed. Pro adds unlimited AI answers and supports the project.</p>
+      </div>
+      <div class="price-grid reveal">
+        <div class="price-card">
+          <h3>Free</h3>
+          <div class="pr">$0</div>
+          <ul><li>Full live sky map</li><li>3D fly-to for every object</li><li>Star-map poster download</li><li>5 AI questions, lifetime</li></ul>
+        </div>
+        <div class="price-card pro">
+          <h3>Pro <span class="badge" style="margin-left:.4rem">soon</span></h3>
+          <div class="pr">$4<small> /mo</small></div>
+          <ul><li>Unlimited AI sky tutor</li><li>Priority feature access</li><li>Support an independent project</li></ul>
+          <button class="btn solid" id="proBtn" style="margin-top:1.1rem; width:100%; justify-content:center">Notify me</button>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -366,6 +503,20 @@
   <div class="v3d-info" id="v3dInfo"></div>
   <div class="v3d-hint" id="v3dHint">drag to orbit · scroll to zoom</div>
   <div class="v3d-load" id="v3dLoad">loading 3D engine…</div>
+</div>
+<div class="promodal" id="proModal">
+  <div class="pm-box"><button class="x" id="proModalClose" aria-label="close">×</button>
+    <h3>Meridian Pro</h3>
+    <p style="font-size:.9rem; color:var(--ink-soft); line-height:1.6">Billing isn't live yet. Leave a note and we'll let you know the moment Pro opens — unlimited AI answers, priority features, and support for an independent project.</p>
+    <a class="btn solid" style="margin-top:1rem; width:100%; justify-content:center" href="mailto:hello@meridian.app?subject=Notify%20me%20about%20Meridian%20Pro">Email us to be notified</a>
+  </div>
+</div>
+<button class="askfab" id="askFab" title="Ask Meridian" aria-label="Ask Meridian">✨</button>
+<div class="askpanel" id="askPanel">
+  <div class="ask-top"><span>Ask Meridian</span><button class="btn mini" id="askClose">✕</button></div>
+  <div class="ask-body" id="askBody"><div class="aa" style="color:var(--ink-faint)">Ask anything about the night sky — what you're looking at, distances, physics, mythology. Free plan includes 5 questions.</div></div>
+  <div class="ask-limit" id="askLimit"></div>
+  <div class="ask-foot"><input id="askInput" placeholder="Ask a question…" autocomplete="off"><button class="btn mini solid" id="askSend">Ask</button></div>
 </div>
 
 <script src="app.js" defer></script>
