@@ -1,0 +1,363 @@
+<title>Meridian — Your Sky, Right Now</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+  :root{
+    --bg:#0b1026; --bg-2:#080c1e; --bg-3:#111830;
+    --ink:#d9e0f4; --ink-soft:#9aa5c7; --ink-faint:#616c92;
+    --line:rgba(184,199,244,.12); --line-strong:rgba(184,199,244,.22);
+    --accent:#f5c26b; --accent-strong:#ffd68e; --cool:#7aa2ff;
+    --serif:Georgia,"Iowan Old Style","Palatino Linotype",Palatino,"Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --s-1:.82rem; --s0:1rem; --s1:1.24rem; --s2:1.6rem; --s3:2.05rem;
+    --hero:clamp(2.1rem,4.6vw,3.8rem);
+    --wrap:1180px; --pad:clamp(1.1rem,4vw,2.4rem);
+    --shadow:0 20px 60px -30px rgba(0,0,0,.8);
+  }
+  @media (prefers-color-scheme:light){
+    :root{ --bg:#e7ebf3; --bg-2:#eef1f8; --bg-3:#ffffff;
+      --ink:#172142; --ink-soft:#404b6e; --ink-faint:#6f7a9c;
+      --line:rgba(30,45,90,.14); --line-strong:rgba(30,45,90,.24);
+      --accent:#b3781c; --accent-strong:#8f5f12; --cool:#3b62c9; --shadow:0 22px 50px -32px rgba(30,45,90,.5); }
+  }
+  :root[data-theme="dark"]{ --bg:#0b1026; --bg-2:#080c1e; --bg-3:#111830;
+    --ink:#d9e0f4; --ink-soft:#9aa5c7; --ink-faint:#616c92;
+    --line:rgba(184,199,244,.12); --line-strong:rgba(184,199,244,.22);
+    --accent:#f5c26b; --accent-strong:#ffd68e; --cool:#7aa2ff; --shadow:0 20px 60px -30px rgba(0,0,0,.8); }
+  :root[data-theme="light"]{ --bg:#e7ebf3; --bg-2:#eef1f8; --bg-3:#ffffff;
+    --ink:#172142; --ink-soft:#404b6e; --ink-faint:#6f7a9c;
+    --line:rgba(30,45,90,.14); --line-strong:rgba(30,45,90,.24);
+    --accent:#b3781c; --accent-strong:#8f5f12; --cool:#3b62c9; --shadow:0 22px 50px -32px rgba(30,45,90,.5); }
+
+  *{box-sizing:border-box} body{margin:0}
+  .page{background:var(--bg); color:var(--ink-soft); font-family:var(--sans); font-size:var(--s0);
+    line-height:1.6; -webkit-font-smoothing:antialiased; overflow-x:hidden; transition:background .8s,color .5s}
+  h1,h2,h3{font-family:var(--serif); color:var(--ink); font-weight:600; text-wrap:balance; letter-spacing:-.01em}
+  a{color:inherit}
+  .wrap{max-width:var(--wrap); margin:0 auto; padding-inline:var(--pad)}
+  .mono{font-family:var(--mono)}
+  .eyebrow{font-family:var(--mono); font-size:var(--s-1); letter-spacing:.14em; text-transform:uppercase; color:var(--accent)}
+
+  header.nav{position:sticky; top:0; z-index:50; backdrop-filter:blur(10px);
+    background:color-mix(in srgb,var(--bg) 74%,transparent); border-bottom:1px solid var(--line)}
+  .nav-in{display:flex; align-items:center; gap:1rem; height:58px}
+  .brand{display:flex; align-items:center; gap:.5rem; font-family:var(--serif); color:var(--ink); font-size:1.08rem; margin-right:auto}
+  .brand svg{width:23px; height:23px; display:block}
+  .nav-links{display:flex; gap:1.3rem}
+  .nav-links a{font-size:.86rem; color:var(--ink-soft); text-decoration:none; transition:color .2s}
+  .nav-links a:hover{color:var(--accent)}
+  @media (max-width:820px){.nav-links{display:none}}
+  .btn{font:inherit; font-size:.86rem; cursor:pointer; border-radius:999px; padding:.48rem 1rem;
+    border:1px solid var(--line-strong); background:transparent; color:var(--ink); text-decoration:none;
+    display:inline-flex; align-items:center; gap:.4rem; transition:border-color .2s,background .2s,color .2s,transform .2s; white-space:nowrap}
+  .btn:hover{border-color:var(--accent); color:var(--accent); transform:translateY(-1px)}
+  .btn.solid{background:var(--accent); color:#141007; border-color:var(--accent); font-weight:600}
+  .btn.solid:hover{background:var(--accent-strong); border-color:var(--accent-strong); color:#141007}
+  .btn.mini{padding:.4rem .7rem; font-size:.8rem}
+  .btn.icon{padding:.45rem; width:34px; height:34px; justify-content:center}
+  .toggle{width:34px; height:34px; padding:0; justify-content:center; border-radius:50%}
+
+  .hero{position:relative; min-height:calc(100svh - 58px); display:flex; align-items:flex-end; isolation:isolate; overflow:hidden}
+  .hero:fullscreen{min-height:100vh}
+  #sky{position:absolute; inset:0; width:100%; height:100%; z-index:0; display:block; touch-action:none; cursor:grab}
+  #sky.grabbing{cursor:grabbing}
+  .hero::after{content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+    background:linear-gradient(180deg,transparent 45%,color-mix(in srgb,var(--bg) 55%,transparent) 88%,color-mix(in srgb,var(--bg) 78%,transparent) 100%)}
+  .hero-in{padding-block:clamp(1.2rem,3vh,2.2rem); width:100%; position:relative; z-index:2; pointer-events:none}
+  .hero-in .btn,.hero-in .switch,.hero-in label,.hero-in input,.hero-in a,.hero-in .skybar{pointer-events:auto}
+  .hero:fullscreen .hero-in{max-width:var(--wrap); margin:0 auto; padding-inline:var(--pad)}
+  .hero h1{font-size:var(--hero); line-height:1.04; margin:.4rem 0 0; max-width:20ch}
+  .hero h1 em{font-style:italic; color:var(--accent)}
+  .hero p.lede{font-size:var(--s1); max-width:52ch; margin:.8rem 0 0; color:var(--ink-soft)}
+  @media (max-width:640px){ .hero p.lede{font-size:1.05rem; max-width:40ch} .hero:fullscreen .lede,.hero:fullscreen h1{display:none} }
+
+  .controls{display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; margin-top:1.1rem}
+  .status{font-family:var(--mono); font-size:var(--s-1); color:var(--ink-faint)}
+  .status b{color:var(--accent); font-weight:400}
+  .manual{display:none; gap:.4rem; align-items:center; flex-wrap:wrap}
+  .manual.show{display:flex}
+  .manual input{font:inherit; font-family:var(--mono); font-size:.82rem; width:6.4rem; padding:.42rem .6rem;
+    border-radius:8px; border:1px solid var(--line-strong); background:var(--bg-3); color:var(--ink)}
+  .switch{display:inline-flex; align-items:center; gap:.4rem; font-family:var(--mono); font-size:var(--s-1); color:var(--ink-soft); cursor:pointer; user-select:none}
+  .switch input{accent-color:var(--accent); width:15px; height:15px}
+
+  /* sky control bar */
+  .skybar{display:flex; flex-wrap:wrap; align-items:center; gap:.6rem; margin-top:1rem;
+    background:color-mix(in srgb,var(--bg-3) 60%,transparent); border:1px solid var(--line); border-radius:12px;
+    padding:.55rem .7rem; backdrop-filter:blur(8px); max-width:760px}
+  .skybar .timec{display:flex; align-items:center; gap:.5rem; flex:1; min-width:210px}
+  .skybar input[type=range]{flex:1; accent-color:var(--accent); min-width:90px; height:20px}
+  .tlabel{font-family:var(--mono); font-size:var(--s-1); color:var(--ink); min-width:98px; text-align:right; font-variant-numeric:tabular-nums}
+  .badge{font-family:var(--mono); font-size:.72rem; letter-spacing:.1em; text-transform:uppercase; color:#141007;
+    background:var(--accent); border-radius:999px; padding:.28rem .7rem; font-weight:600}
+  .hint{font-family:var(--mono); font-size:var(--s-1); color:var(--ink-faint); display:flex; align-items:center; gap:.5rem; margin-top:.8rem}
+  .hint .dot{width:6px; height:6px; border-radius:50%; background:var(--cool); animation:pulse 2.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--cool) 60%,transparent)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  @media (max-width:640px){ .skybar{max-width:none} .tlabel{min-width:auto} }
+
+  /* tooltip */
+  #tip{position:fixed; z-index:80; pointer-events:none; opacity:0; transform:translateY(4px); transition:opacity .12s;
+    background:color-mix(in srgb,var(--bg-3) 92%,transparent); border:1px solid var(--line-strong); border-radius:10px;
+    padding:.5rem .7rem; box-shadow:var(--shadow); max-width:240px; backdrop-filter:blur(6px)}
+  #tip.show{opacity:1}
+  #tip .tt{font-family:var(--serif); color:var(--ink); font-size:1rem; line-height:1.2}
+  #tip .tk{font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; color:var(--accent); margin-top:.15rem}
+  #tip .tl{font-family:var(--mono); font-size:.75rem; color:var(--ink-soft); margin-top:.22rem; font-variant-numeric:tabular-nums}
+
+  /* detail panel (telescope) */
+  .detail{position:fixed; z-index:85; left:16px; bottom:16px; width:280px; max-width:calc(100vw - 32px);
+    background:color-mix(in srgb,var(--bg-3) 95%,transparent); border:1px solid var(--line-strong); border-radius:14px;
+    box-shadow:var(--shadow); padding:1rem 1.1rem; transform:translateY(14px); opacity:0; pointer-events:none; transition:opacity .18s,transform .18s; backdrop-filter:blur(10px)}
+  .detail.show{opacity:1; transform:none; pointer-events:auto}
+  .detail h3{font-size:1.3rem; margin:0}
+  .detail .dk{font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); margin-top:.2rem}
+  .detail .drow{display:flex; justify-content:space-between; gap:1rem; font-family:var(--mono); font-size:.8rem; padding:.35rem 0; border-top:1px solid var(--line); margin-top:.5rem; font-variant-numeric:tabular-nums}
+  .detail .drow:first-of-type{margin-top:.7rem}
+  .detail .dk2{color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em; font-size:.7rem}
+  .detail .dv{color:var(--ink)}
+  .detail .scope{margin-top:.8rem; font-family:var(--mono); font-size:.72rem; color:var(--cool); line-height:1.5}
+  .detail .x{position:absolute; top:.6rem; right:.7rem; cursor:pointer; background:none; border:none; color:var(--ink-faint); font-size:1.3rem; line-height:1; padding:.1rem .3rem; border-radius:6px}
+  .detail .x:hover{color:var(--accent)}
+  @media (max-width:640px){ .detail{left:8px; right:8px; width:auto; bottom:8px} }
+
+  section{padding-block:clamp(3rem,7vw,5rem)}
+  .head{max-width:60ch} .head h2{font-size:var(--s3); margin:.4rem 0 0} .head p{margin:.8rem 0 0}
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity .6s ease,transform .6s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1; transform:none}
+
+  .tonight{background:var(--bg-2); border-block:1px solid var(--line)}
+  .log{margin-top:2rem; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--bg-3); box-shadow:var(--shadow)}
+  .log-top{display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:.85rem 1.2rem;
+    border-bottom:1px solid var(--line); font-family:var(--mono); font-size:var(--s-1); letter-spacing:.06em; text-transform:uppercase; color:var(--ink-faint)}
+  .log-top .live{color:var(--accent); display:flex; align-items:center; gap:.5rem}
+  .log-top .live::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); animation:pulse 2.6s infinite}
+  .rows{display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+  .row{padding:1.2rem 1.3rem; border-top:1px solid var(--line); border-left:1px solid var(--line)}
+  .row:nth-child(-n+2){border-top:none}
+  @media (max-width:520px){.row:nth-child(2){border-top:1px solid var(--line)}}
+  .row .k{font-family:var(--mono); font-size:var(--s-1); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-faint)}
+  .row .v{font-family:var(--serif); color:var(--ink); font-size:var(--s2); margin-top:.45rem; font-variant-numeric:tabular-nums}
+  .row .sub{font-family:var(--mono); font-size:var(--s-1); color:var(--accent); margin-top:.2rem}
+
+  .filters{display:flex; flex-wrap:wrap; gap:.55rem; margin-top:1.6rem}
+  .chip{font:inherit; font-family:var(--mono); font-size:var(--s-1); letter-spacing:.05em; text-transform:uppercase;
+    cursor:pointer; padding:.45rem .9rem; border-radius:999px; border:1px solid var(--line-strong); background:transparent; color:var(--ink-soft); transition:all .2s}
+  .chip:hover{color:var(--ink); border-color:var(--accent)}
+  .chip[aria-pressed="true"]{background:var(--accent); color:#141007; border-color:var(--accent)}
+  .sky-list{margin-top:1.5rem; display:flex; flex-direction:column; gap:.45rem}
+  .obj{display:grid; grid-template-columns:1.6rem 1.6fr 1fr 92px; gap:1rem; align-items:center; padding:.8rem 1.1rem;
+    border:1px solid var(--line); border-radius:11px; background:var(--bg-3); transition:border-color .2s,transform .2s; cursor:pointer}
+  .obj:hover{border-color:var(--accent); transform:translateX(3px)}
+  .obj .sym{font-family:var(--mono); text-align:center; font-size:1.1rem}
+  .obj .name{color:var(--ink); font-family:var(--serif); font-size:var(--s1)}
+  .obj .name small{display:block; font-family:var(--mono); font-size:.72rem; letter-spacing:.05em; color:var(--ink-faint); text-transform:uppercase; margin-top:.12rem}
+  .obj .coord{font-family:var(--mono); font-size:.8rem; color:var(--ink-soft); font-variant-numeric:tabular-nums}
+  .obj .alt{display:flex; flex-direction:column; gap:.28rem}
+  .obj .alt .bar{height:5px; border-radius:3px; background:var(--line-strong); overflow:hidden}
+  .obj .alt .bar i{display:block; height:100%; background:linear-gradient(90deg,var(--cool),var(--accent))}
+  .obj .alt .deg{font-family:var(--mono); font-size:.72rem; color:var(--ink-faint); font-variant-numeric:tabular-nums}
+  .empty{padding:1.4rem; text-align:center; font-family:var(--mono); font-size:var(--s-1); color:var(--ink-faint)}
+  @media (max-width:600px){ .obj{grid-template-columns:1.5rem 1fr 74px} .obj .coord{display:none} }
+
+  .finale{text-align:center}
+  .finale h2{font-size:clamp(1.9rem,5vw,3rem); max-width:20ch; margin:0 auto}
+  .finale p{max-width:50ch; margin:1rem auto 0}
+  .note{margin-top:1.4rem; font-family:var(--mono); font-size:var(--s-1); color:var(--ink-faint); max-width:64ch; margin-inline:auto; line-height:1.7}
+  .credit{margin-top:2.4rem; padding-top:1.6rem; border-top:1px solid var(--line); font-family:var(--serif); font-style:italic; color:var(--ink); font-size:1.1rem}
+  .credit span{display:block; font-family:var(--mono); font-style:normal; font-size:var(--s-1); letter-spacing:.14em; text-transform:uppercase; color:var(--accent); margin-top:.5rem}
+  footer{border-top:1px solid var(--line); background:var(--bg-2)}
+  .foot{display:flex; flex-wrap:wrap; gap:1rem 2rem; align-items:center; padding-block:1.8rem; font-size:.84rem; color:var(--ink-faint)}
+  .foot .brand{margin-right:auto; font-size:.98rem}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important} .reveal{opacity:1; transform:none; transition:none} }
+
+  .searchwrap{position:relative; width:min(240px,100%)}
+  #searchIn{font:inherit; font-family:var(--mono); font-size:.82rem; width:100%; padding:.45rem .8rem; border-radius:999px;
+    border:1px solid var(--line-strong); background:color-mix(in srgb,var(--bg-3) 75%,transparent); color:var(--ink)}
+  #searchIn::placeholder{color:var(--ink-faint)}
+  .sres{position:absolute; top:calc(100% + 5px); left:0; right:0; background:var(--bg-3); border:1px solid var(--line-strong);
+    border-radius:12px; overflow:hidden auto; max-height:270px; z-index:60; display:none; box-shadow:var(--shadow)}
+  .sres.show{display:block}
+  .sres b{display:flex; justify-content:space-between; align-items:center; gap:.6rem; padding:.5rem .8rem; cursor:pointer; font-weight:400; border-bottom:1px solid var(--line)}
+  .sres b:last-child{border-bottom:none}
+  .sres b:hover,.sres b.sel{background:color-mix(in srgb,var(--accent) 18%,transparent)}
+  .sres .sn{color:var(--ink); font-family:var(--serif); font-size:.98rem}
+  .sres .stt{font-family:var(--mono); font-size:.68rem; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.06em}
+
+  .v3d{position:fixed; inset:0; z-index:120; background:radial-gradient(circle at 50% 40%,#0a1024,#05070f 80%); display:none; flex-direction:column}
+  .v3d.show{display:flex}
+  .v3d-top{position:relative; z-index:3; display:flex; align-items:center; justify-content:space-between; padding:.8rem 1.1rem; border-bottom:1px solid rgba(255,255,255,.08)}
+  .v3d-top span{font-family:var(--serif); color:#fff; font-size:1.25rem}
+  .v3d-top .btn{color:#fff; border-color:rgba(255,255,255,.25)} .v3d-top .btn:hover{border-color:var(--accent); color:var(--accent)}
+  .v3d-canvas{position:absolute; inset:0; z-index:1} .v3d-canvas canvas{display:block}
+  .v3d-info{position:absolute; left:16px; bottom:16px; z-index:3; max-width:300px; background:rgba(9,13,26,.72);
+    border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:.9rem 1.05rem; backdrop-filter:blur(8px)}
+  .v3d-info h4{margin:0 0 .35rem; color:#fff; font-family:var(--serif); font-size:1.15rem}
+  .v3d-info .r{font-family:var(--mono); font-size:.76rem; color:#b9c4e4; padding:.16rem 0; font-variant-numeric:tabular-nums}
+  .v3d-hint{position:absolute; right:16px; bottom:16px; z-index:3; font-family:var(--mono); font-size:.74rem; color:#7a86a8}
+  .v3d-load{position:absolute; inset:0; z-index:2; display:none; align-items:center; justify-content:center; font-family:var(--mono); color:#8b97bb; font-size:.9rem}
+  .v3d-load.show{display:flex}
+  @media (max-width:640px){ .v3d-info{left:8px; right:8px; max-width:none; bottom:8px} .v3d-hint{display:none} }
+
+  /* monetization: shop, gear, poster + explain-this tutor */
+  #shop{background:var(--bg-2); border-block:1px solid var(--line)}
+  .shop-cta{display:flex; flex-wrap:wrap; gap:1rem; align-items:center; margin-top:1.6rem}
+  .gear-grid{margin-top:1.6rem; display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.9rem}
+  .gear-card{display:flex; flex-direction:column; gap:.4rem; padding:1.1rem 1.2rem; border:1px solid var(--line); border-radius:13px;
+    background:var(--bg-3); text-decoration:none; transition:border-color .2s,transform .2s}
+  .gear-card:hover{border-color:var(--accent); transform:translateY(-2px)}
+  .gear-card .gt{font-family:var(--serif); color:var(--ink); font-size:1.12rem}
+  .gear-card .gd{font-size:.86rem; color:var(--ink-soft); line-height:1.5}
+  .gear-card .gl{font-family:var(--mono); font-size:.74rem; letter-spacing:.05em; text-transform:uppercase; color:var(--accent); margin-top:.2rem}
+  .disc{margin-top:1rem; font-family:var(--mono); font-size:.72rem; color:var(--ink-faint)}
+  .explain{margin-top:.7rem; font-size:.86rem; line-height:1.6; color:var(--ink-soft); display:none}
+  .explain.show{display:block}
+  .cgear{margin-top:.7rem; display:flex; flex-direction:column; gap:.3rem}
+  .cgear-l{font-family:var(--mono); font-size:.74rem; color:var(--cool); text-decoration:none}
+  .cgear-l:hover{color:var(--accent)}
+  .poster-wrap{position:absolute; inset:56px 0 0; display:flex; align-items:center; justify-content:center; padding:1rem; overflow:auto}
+  #posterCanvas{max-width:min(94vw,620px); max-height:calc(100vh - 90px); box-shadow:var(--shadow); border-radius:6px; background:#080c1e}
+  .v3d-top .row-btns{display:flex; gap:.5rem; flex-wrap:wrap; align-items:center}
+</style>
+
+<div class="page">
+  <header class="nav">
+    <div class="wrap nav-in">
+      <span class="brand">
+        <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.2" opacity=".4"/>
+          <path d="M21 7a9 9 0 1 0 4 9 7 7 0 0 1-4-9Z" fill="var(--accent)"/>
+          <circle cx="12" cy="22" r="1.4" fill="var(--accent)"/>
+        </svg> Meridian
+      </span>
+      <nav class="nav-links"><a href="#tonight">Tonight</a><a href="#whatsup">What's up</a></nav>
+      <button class="btn toggle" id="themeBtn" aria-label="Switch theme" title="Switch theme">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"></svg>
+      </button>
+      <button class="btn solid" id="locBtn2">Use my location</button>
+    </div>
+  </header>
+
+  <section class="hero" id="hero" aria-label="Live sky map for your location">
+    <canvas id="sky"></canvas>
+    <div class="wrap hero-in">
+      <span class="eyebrow" id="coordLine">locating…</span>
+      <h1>Your sky. <em>Right now</em>, right where you stand.</h1>
+      <p class="lede">A live, full-sky map of the real sky above your exact spot. Drag to rotate, scrub time to see what's coming, tap anything for telescope coordinates.</p>
+      <div class="controls">
+        <button class="btn solid" id="locBtn">Use my location</button>
+        <span class="status" id="locStatus">Showing a default sky. <b>Locate</b> for yours.</span>
+      </div>
+      <div class="controls" style="margin-top:.6rem">
+        <div class="manual" id="manual">
+          <input id="latIn" inputmode="decimal" placeholder="lat 40.71" aria-label="latitude">
+          <input id="lonIn" inputmode="decimal" placeholder="lon -74.00" aria-label="longitude">
+          <button class="btn mini" id="setBtn">Set</button>
+        </div>
+      </div>
+      <div class="skybar">
+        <button class="btn mini icon" id="fsBtn" title="Full view">⛶</button>
+        <button class="btn mini" id="nowBtn" title="Back to live">Now</button>
+        <div class="timec">
+          <button class="btn mini icon" id="playBtn" title="Play time">▶</button>
+          <input type="range" id="timeSlider" min="-720" max="720" value="0" step="5" aria-label="time offset">
+          <span class="tlabel" id="tlabel">live · now</span>
+        </div>
+        <button class="btn mini" id="resetView" title="Reset rotation">Reset view</button>
+        <label class="switch"><input type="checkbox" id="linesToggle" checked> Lines</label>
+        <span class="badge" id="periodBadge">—</span>
+        <div class="searchwrap"><input id="searchIn" placeholder="Search a star, planet, galaxy…" autocomplete="off" aria-label="search the sky"><div class="sres" id="searchRes"></div></div>
+      </div>
+      <p class="hint"><span class="dot"></span> Center is straight up (zenith), edges are your horizon. Drag to spin the sky · hover or tap to identify · ⛶ for full view.</p>
+    </div>
+  </section>
+
+  <section class="tonight" id="tonight">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Observation log · live</span>
+        <h2>Your sky, resolved to the minute.</h2>
+        <p>Computed from the Sun and Moon for the exact coordinates above — the dark window is when the Sun sits below −18°.</p>
+      </div>
+      <div class="log reveal">
+        <div class="log-top"><span id="logSite">site — default</span><span class="live">tracking now</span></div>
+        <div class="rows">
+          <div class="row"><div class="k">Right now</div><div class="v" id="tNow">—</div><div class="sub" id="tNowSub">sun altitude</div></div>
+          <div class="row"><div class="k">Astro twilight ends</div><div class="v" id="tTwi">—</div><div class="sub" id="tTwiSub">sun −18°</div></div>
+          <div class="row"><div class="k">Dark window</div><div class="v" id="tDark">—</div><div class="sub" id="tDarkSub">astronomical night</div></div>
+          <div class="row"><div class="k">Moon</div><div class="v" id="tMoon">—</div><div class="sub" id="tMoonSub">illumination</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="whatsup">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">What's up · live</span>
+        <h2>Above your horizon this second, highest first.</h2>
+        <p>Planets, the Moon, and bright named stars — computed for your location and time. Tap a row for full coordinates.</p>
+      </div>
+      <div class="filters reveal" role="group" aria-label="Filter targets">
+        <button class="chip" data-f="all" aria-pressed="true">All</button>
+        <button class="chip" data-f="planet" aria-pressed="false">Planets</button>
+        <button class="chip" data-f="star" aria-pressed="false">Stars</button>
+        <button class="chip" data-f="moon" aria-pressed="false">Moon</button>
+      </div>
+      <div class="sky-list reveal" id="skyList" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section id="shop">
+    <div class="wrap">
+      <div class="head reveal">
+        <span class="eyebrow">Take it home</span>
+        <h2>Your sky tonight, as a printable star map.</h2>
+        <p>Generate a poster of the exact sky above you right now — your location, date and constellations. Free to download, ready to frame.</p>
+      </div>
+      <div class="shop-cta reveal">
+        <button class="btn solid" id="posterBtn">Create my star map poster ↗</button>
+        <span class="status">Free hi-res PNG · rendered live from your coordinates</span>
+      </div>
+      <div class="head reveal" style="margin-top:3.2rem">
+        <span class="eyebrow">Gear we'd point you to</span>
+        <h2>Now go look up for real.</h2>
+        <p>Hand-picked starter kit for what's above you tonight.</p>
+      </div>
+      <div class="gear-grid reveal" id="gearGrid"></div>
+      <p class="disc">Some links are affiliate links — if you buy through them, Meridian may earn a small commission at no extra cost to you.</p>
+    </div>
+  </section>
+
+  <section class="finale">
+    <div class="wrap">
+      <span class="eyebrow">Clear skies</span>
+      <h2>Everything above is really there. Go look up.</h2>
+      <p class="note">Positions computed in your browser from a Yale Bright Star catalogue and low-precision Sun/Moon/planet models — accurate to a fraction of a degree, good for finding things by eye and pointing a small scope. Your location never leaves this page.</p>
+      <p class="credit">The experimental program is initiated by Kanishka Seneviratne.<span>Meridian · live sky · experimental</span></p>
+    </div>
+  </section>
+
+  <footer><div class="wrap foot">
+    <span class="brand">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true" style="width:20px;height:20px">
+        <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="1.2" opacity=".4"/>
+        <path d="M21 7a9 9 0 1 0 4 9 7 7 0 0 1-4-9Z" fill="var(--accent)"/></svg> Meridian
+    </span>
+    <span class="mono" style="font-size:.76rem">Live sky · initiated by Kanishka Seneviratne · star data © d3-celestial / Yale BSC</span>
+  </div></footer>
+</div>
+<div id="tip"></div>
+<div class="detail" id="detail"><button class="x" id="detailClose" aria-label="close">×</button><div id="detailBody"></div></div>
+<div class="v3d" id="poster">
+  <div class="v3d-top"><span>Your star map</span><span class="row-btns"><button class="btn mini" id="posterDl">⤓ Download PNG</button><button class="btn mini solid" id="posterOrder">Order framed print</button><button class="btn mini" id="posterClose">✕ Close</button></span></div>
+  <div class="poster-wrap"><canvas id="posterCanvas"></canvas></div>
+</div>
+<div class="v3d" id="view3d">
+  <div class="v3d-top"><span id="v3dTitle">3D view</span><button class="btn mini" id="v3dClose">✕ Close</button></div>
+  <div class="v3d-canvas" id="v3dCanvas"></div>
+  <div class="v3d-info" id="v3dInfo"></div>
+  <div class="v3d-hint" id="v3dHint">drag to orbit · scroll to zoom</div>
+  <div class="v3d-load" id="v3dLoad">loading 3D engine…</div>
+</div>
+
+<script src="app.js" defer></script>
