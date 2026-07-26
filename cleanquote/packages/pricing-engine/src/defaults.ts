@@ -124,3 +124,69 @@ export const STARTER_GUARDRAILS: Guardrails = {
  * training and relief coverage are paid for but do not clean.
  */
 export const STARTER_ABSENCE_ALLOWANCE_PCT = '12';
+
+/**
+ * Starter adjustment factors.
+ *
+ * The capture layer records traffic, soil, furniture density and access as
+ * descriptive levels, because that is what an estimator can actually observe on
+ * a walkthrough. Turning "high traffic" into a number is a commercial
+ * assumption, not arithmetic — so it lives here beside the other editable
+ * starter defaults rather than inside the engine or, worse, inside a component.
+ *
+ * A factor of 1 means no adjustment. These are conservative round numbers, not
+ * benchmarks, and an organisation is expected to replace them with its own.
+ */
+export const STARTER_ADJUSTMENT_FACTORS = {
+  traffic: {
+    very_low: 0.9,
+    low: 0.95,
+    medium: 1,
+    high: 1.15,
+    very_high: 1.3,
+    continuous_public: 1.4,
+    shift_change_peaks: 1.2,
+    event_driven: 1.25,
+    seasonal: 1.1,
+  },
+  soil: {
+    light: 0.92,
+    normal: 1,
+    heavy: 1.2,
+    severe: 1.45,
+    grease: 1.35,
+    dust: 1.15,
+    construction_residue: 1.5,
+    biological: 1.4,
+    food_residue: 1.3,
+    industrial_residue: 1.35,
+  },
+  furnitureDensity: {
+    none: 0.9,
+    sparse: 0.95,
+    normal: 1,
+    dense: 1.15,
+    very_dense: 1.3,
+  },
+  access: {
+    unrestricted: 1,
+    minor_restriction: 1.05,
+    escorted: 1.2,
+    security_screened: 1.25,
+    height_access: 1.3,
+    confined_space: 1.4,
+    controlled_environment: 1.35,
+  },
+} as const;
+
+export type AdjustmentFactorDimension = keyof typeof STARTER_ADJUSTMENT_FACTORS;
+
+/** Resolves a descriptive level to a factor, defaulting to no adjustment. */
+export function starterFactorFor(
+  dimension: AdjustmentFactorDimension,
+  level: string | null | undefined,
+): number {
+  if (!level) return 1;
+  const table = STARTER_ADJUSTMENT_FACTORS[dimension] as Record<string, number | undefined>;
+  return table[level] ?? 1;
+}

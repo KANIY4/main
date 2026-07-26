@@ -1,0 +1,21 @@
+{
+  "name": "@cleanquote/email",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cleanquote/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.11",
+    "typescript": "5.9.3"
+  }
+}

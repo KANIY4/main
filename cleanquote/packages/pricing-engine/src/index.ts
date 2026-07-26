@@ -29,4 +29,7 @@ export {
   STARTER_OVERHEADS,
   STARTER_GUARDRAILS,
   STARTER_ABSENCE_ALLOWANCE_PCT,
+  STARTER_ADJUSTMENT_FACTORS,
+  starterFactorFor,
 } from './defaults';
+export type { AdjustmentFactorDimension } from './defaults';

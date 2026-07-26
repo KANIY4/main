@@ -9,14 +9,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@cleanquote/ai": "workspace:*",
+    "@cleanquote/auth": "workspace:*",
     "@cleanquote/config": "workspace:*",
+    "@cleanquote/database": "workspace:*",
+    "@cleanquote/email": "workspace:*",
     "@cleanquote/pricing-engine": "workspace:*",
     "@cleanquote/seed-cases": "workspace:*",
     "@cleanquote/types": "workspace:*",
     "@cleanquote/validation": "workspace:*",
+    "@cleanquote/workflow": "workspace:*",
     "next": "16.2.12",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1"
   },
   "devDependencies": {
     "@types/react": "19.2.17",

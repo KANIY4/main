@@ -1,0 +1,27 @@
+{
+  "name": "@cleanquote/workflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cleanquote/ai": "workspace:*",
+    "@cleanquote/auth": "workspace:*",
+    "@cleanquote/database": "workspace:*",
+    "@cleanquote/email": "workspace:*",
+    "@cleanquote/pricing-engine": "workspace:*",
+    "@cleanquote/types": "workspace:*",
+    "@cleanquote/validation": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.11",
+    "typescript": "5.9.3"
+  }
+}

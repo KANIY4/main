@@ -4,7 +4,12 @@ const nextConfig = {
   // Workspace packages ship TypeScript source rather than build output, so Next
   // compiles them as part of the app. One fewer build step to keep in sync.
   transpilePackages: [
+    '@cleanquote/ai',
+    '@cleanquote/auth',
     '@cleanquote/config',
+    '@cleanquote/database',
+    '@cleanquote/email',
+    '@cleanquote/workflow',
     '@cleanquote/pricing-engine',
     '@cleanquote/seed-cases',
     '@cleanquote/types',
