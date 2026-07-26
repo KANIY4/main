@@ -34,6 +34,22 @@ const serverSchema = z.object({
   STRIPE_SECRET_KEY: z.string().min(10).optional(),
   STRIPE_WEBHOOK_SECRET: z.string().min(10).optional(),
   SENTRY_DSN: z.string().optional(),
+  /**
+   * Where captured media lives. `local` writes under STORAGE_LOCAL_ROOT and is
+   * the default so the product runs before any storage account exists;
+   * `s3` targets any S3-compatible endpoint, Supabase Storage included.
+   */
+  STORAGE_PROVIDER: z.enum(['local', 's3']).default('local'),
+  STORAGE_LOCAL_ROOT: z.string().default('.storage'),
+  STORAGE_BUCKET: z.string().default('capture'),
+  STORAGE_ENDPOINT: z.url().optional(),
+  STORAGE_REGION: z.string().default('auto'),
+  STORAGE_ACCESS_KEY_ID: z.string().optional(),
+  STORAGE_SECRET_ACCESS_KEY: z.string().optional(),
+  /** How long a media link stays valid. Short by default; these are site photos. */
+  STORAGE_SIGNED_URL_TTL_SECONDS: z.coerce.number().int().min(30).max(86_400).default(600),
+  /** Signs local media links. Generated per process when unset, which is fine for one node. */
+  STORAGE_URL_SIGNING_SECRET: z.string().optional(),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 });
 

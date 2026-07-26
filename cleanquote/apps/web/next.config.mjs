@@ -10,6 +10,7 @@ const nextConfig = {
     '@cleanquote/database',
     '@cleanquote/email',
     '@cleanquote/workflow',
+    '@cleanquote/storage',
     '@cleanquote/pricing-engine',
     '@cleanquote/seed-cases',
     '@cleanquote/types',
@@ -29,8 +30,10 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            // The mobile app needs camera and geolocation; the web app does not.
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            // Camera is allowed on this origin only, for walkthrough capture.
+            // Everything else stays off: a quotation tool has no business
+            // reaching for a microphone or a location.
+            value: 'camera=(self), microphone=(), geolocation=(), interest-cohort=()',
           },
           {
             key: 'Content-Security-Policy',

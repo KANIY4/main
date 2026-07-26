@@ -13,6 +13,18 @@ export const metadata: Metadata = {
   description:
     'Capture a site, price it against a defensible cost model, and compare pricing strategies before a proposal ever leaves the building.',
   robots: { index: false, follow: false },
+  // Installable so the capture screen can be launched from a home screen and
+  // gets the whole viewport. See app/manifest.ts for what that does and does
+  // not promise.
+  manifest: '/manifest.webmanifest',
+  appleWebApp: { capable: true, statusBarStyle: 'default' },
+};
+
+export const viewport = {
+  themeColor: '#1f6feb',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover' as const,
 };
 
 /**

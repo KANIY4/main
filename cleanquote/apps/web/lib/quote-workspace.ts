@@ -4,6 +4,7 @@ import {
   aiStore,
   auditStore,
   crmStore,
+  mediaStore,
   proposalStore,
   tenancyStore,
   withUser,
@@ -11,6 +12,7 @@ import {
 import type { quoteStore } from '@cleanquote/database';
 import {
   approvalStateFor,
+  mediaLink,
   openQuestions,
   readLatestCalculation,
   readWorkspace,
@@ -44,6 +46,9 @@ export interface QuoteWorkspace {
   readonly suggestions: aiStore.AiSuggestionRow[];
   readonly activity: Activity;
   readonly proposals: Proposals;
+  readonly photos: mediaStore.FileRow[];
+  /** Signed and expiring, resolved per request. Never stored, never permanent. */
+  readonly photoLinks: Record<string, string>;
   readonly client: crmStore.ClientRow | undefined;
   readonly site: crmStore.SiteRow | undefined;
 }
@@ -67,23 +72,36 @@ export async function loadQuoteWorkspace(
     approvalStateFor(actor.userId, quoteId),
     openQuestions(actor.userId, quoteId),
     withUser(actor.userId, async (db) => {
-      const [settings, suggestions, activity, clients, site, proposals] = await Promise.all([
-        tenancyStore.getSettings(db, actor.organisationId),
-        aiStore.listSuggestions(db, quoteId, 'pending'),
-        auditStore.listQuoteActivity(db, actor.organisationId, quoteId, 60),
-        crmStore.listClients(db, actor.organisationId),
-        workspace.quote.site_id
-          ? crmStore.getSite(db, workspace.quote.site_id)
-          : Promise.resolve(undefined),
-        workspace.version
-          ? proposalStore.listProposals(db, workspace.version.id)
-          : Promise.resolve([]),
-      ]);
-      return { settings, suggestions, activity, clients, site, proposals };
+      const [settings, suggestions, activity, clients, site, proposals, photos] = await Promise.all(
+        [
+          tenancyStore.getSettings(db, actor.organisationId),
+          aiStore.listSuggestions(db, quoteId, 'pending'),
+          auditStore.listQuoteActivity(db, actor.organisationId, quoteId, 60),
+          crmStore.listClients(db, actor.organisationId),
+          workspace.quote.site_id
+            ? crmStore.getSite(db, workspace.quote.site_id)
+            : Promise.resolve(undefined),
+          workspace.version
+            ? proposalStore.listProposals(db, workspace.version.id)
+            : Promise.resolve([]),
+          mediaStore.listQuoteFiles(db, quoteId),
+        ],
+      );
+      return { settings, suggestions, activity, clients, site, proposals, photos };
     }),
   ]);
 
   const client = extras.clients.find((row) => row.id === workspace.quote.client_id);
+
+  // Resolved one per photo rather than one permanent URL per photo: a link that
+  // never expires is a link that outlives the person's access to the quote.
+  const photoLinks: Record<string, string> = {};
+  await Promise.all(
+    extras.photos.map(async (photo) => {
+      const link = await mediaLink(actor.userId, photo.id, 'thumbnail');
+      if (link) photoLinks[photo.id] = link;
+    }),
+  );
 
   return {
     ...workspace,
@@ -94,6 +112,8 @@ export async function loadQuoteWorkspace(
     suggestions: extras.suggestions,
     activity: extras.activity,
     proposals: extras.proposals,
+    photos: extras.photos,
+    photoLinks,
     client,
     site: extras.site,
   };

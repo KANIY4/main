@@ -18,7 +18,8 @@
     "@cleanquote/email": "workspace:*",
     "@cleanquote/pricing-engine": "workspace:*",
     "@cleanquote/types": "workspace:*",
-    "@cleanquote/validation": "workspace:*"
+    "@cleanquote/validation": "workspace:*",
+    "@cleanquote/storage": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.18.11",

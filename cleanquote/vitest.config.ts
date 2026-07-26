@@ -1,6 +1,14 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      // `server-only` exists to make a build fail when a server module is
+      // pulled into a client bundle. Under Vitest there is no such bundle, and
+      // its client entry point throws on import, so it resolves to nothing.
+      'server-only': new URL('./test/stubs/server-only.ts', import.meta.url).pathname,
+    },
+  },
   test: {
     include: ['packages/**/*.test.ts', 'apps/**/*.test.ts'],
     // The workflow suite boots a PostgreSQL cluster and walks the whole

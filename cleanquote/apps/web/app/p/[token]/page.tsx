@@ -9,6 +9,7 @@ import {
 } from '@/lib/actions/workflow';
 import { money } from '@/lib/format';
 import { readPublicProposal, recordProposalView } from '@cleanquote/workflow';
+import { consumeRateLimit } from '@/lib/rate-limit';
 import { requestContext } from '@/lib/session';
 
 export const metadata = { title: 'Your proposal', robots: { index: false, follow: false } };
@@ -27,13 +28,22 @@ export default async function PublicProposalPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const context = await requestContext();
+
+  // Tokens are 32 random bytes, so guessing is not a realistic threat on
+  // arithmetic alone. The limit is here so that trying anyway costs a database
+  // round trip per attempt rather than being free.
+  const limit = await consumeRateLimit(`proposal-view:${context.ip ?? 'unknown'}`, {
+    limit: 60,
+    windowSeconds: 300,
+  });
+  if (!limit.allowed) notFound();
 
   const proposal = await readPublicProposal(token);
   // A revoked, expired or simply wrong token is the same answer: nothing here.
   // Distinguishing them would turn the link into an oracle for guessing others.
   if (!proposal) notFound();
 
-  const context = await requestContext();
   await recordProposalView(token, context);
 
   const content = proposal.content as unknown as ProposalContent;

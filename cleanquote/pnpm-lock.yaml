@@ -56,6 +56,9 @@ importers:
       '@cleanquote/seed-cases':
         specifier: workspace:*
         version: link:../../packages/seed-cases
+      '@cleanquote/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
       '@cleanquote/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -188,6 +191,19 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/storage:
+    dependencies:
+      '@cleanquote/config':
+        specifier: workspace:*
+        version: link:../config
+    devDependencies:
+      '@types/node':
+        specifier: 22.18.11
+        version: 22.18.11
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/types:
     devDependencies:
       typescript:
@@ -224,6 +240,9 @@ importers:
       '@cleanquote/pricing-engine':
         specifier: workspace:*
         version: link:../pricing-engine
+      '@cleanquote/storage':
+        specifier: workspace:*
+        version: link:../storage
       '@cleanquote/types':
         specifier: workspace:*
         version: link:../types

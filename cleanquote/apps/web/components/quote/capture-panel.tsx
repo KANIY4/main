@@ -10,6 +10,7 @@ import {
 } from '@/lib/actions/workflow';
 import type { QuoteWorkspace } from '@/lib/quote-workspace';
 
+import { PhotosPanel } from './photos-panel';
 import { Empty, PanelHeading } from './shared';
 import { summariseSuggestion } from './suggestion-summary';
 
@@ -46,6 +47,13 @@ export function CapturePanel({
           Open mobile capture
         </Link>
       </section>
+
+      <PhotosPanel
+        quoteId={quote.id}
+        photos={data.photos}
+        links={data.photoLinks}
+        canEdit={canEdit}
+      />
 
       {questions.length > 0 && (
         <section className="card">

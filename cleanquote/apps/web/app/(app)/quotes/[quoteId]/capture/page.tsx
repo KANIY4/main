@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { ActionForm, Field, Select, TextArea } from '@/components/form';
+import { PhotoUpload } from '@/components/photo-upload';
 import { addObservationAction, addSpaceAction, runExtractionAction } from '@/lib/actions/workflow';
 import { assertPermission, requireActor } from '@/lib/session';
 
@@ -80,6 +81,11 @@ export default async function CapturePage({ params }: { params: Promise<{ quoteI
             ]}
           />
         </ActionForm>
+      </section>
+
+      <section className="card">
+        <h2>Photograph it</h2>
+        <PhotoUpload quoteId={quoteId} />
       </section>
 
       <section className="card">

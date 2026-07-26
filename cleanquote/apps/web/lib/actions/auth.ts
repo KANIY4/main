@@ -6,6 +6,7 @@ import { publicEnv } from '@cleanquote/config';
 import { acceptInvitation } from '@cleanquote/workflow';
 import { redirect } from 'next/navigation';
 
+import { consumeRateLimit } from '../rate-limit';
 import {
   clearSessionCookie,
   currentSession,
@@ -76,9 +77,21 @@ export async function signInAction(_prev: FormState, formData: FormData): Promis
   const password = String(formData.get('password') ?? '');
   const invitationToken = String(formData.get('invitationToken') ?? '').trim();
 
+  const context = await requestContext();
+  // Two windows: one on the address so a single account cannot be ground
+  // through a dictionary, one on the caller so a spray across many addresses
+  // from one source is throttled too.
+  for (const key of [`sign-in:${email.toLowerCase()}`, `sign-in-ip:${context.ip ?? 'unknown'}`]) {
+    const limit = await consumeRateLimit(key, { limit: 10, windowSeconds: 300 });
+    if (!limit.allowed) {
+      return {
+        error: `Too many sign-in attempts. Try again in ${limit.retryAfterSeconds} seconds.`,
+      };
+    }
+  }
+
   let userId: string;
   try {
-    const context = await requestContext();
     const session = await auth.signIn(email, password, context);
     await setSessionCookie(session.sessionToken, session.expiresAt);
     userId = session.userId;
@@ -108,6 +121,19 @@ export async function requestPasswordResetAction(
   formData: FormData,
 ): Promise<FormState> {
   const email = String(formData.get('email') ?? '').trim();
+
+  const context = await requestContext();
+  const limit = await consumeRateLimit(`reset:${context.ip ?? 'unknown'}`, {
+    limit: 5,
+    windowSeconds: 900,
+  });
+  // The same answer as the success path: a limiter that says "slow down" to a
+  // stranger and "if that address has an account" to everyone else has just
+  // become an account-existence oracle.
+  if (!limit.allowed) {
+    return { notice: 'If that address has an account, a reset link is on its way.' };
+  }
+
   const reset = await auth.beginPasswordReset(email);
 
   if (reset) {

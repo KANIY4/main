@@ -7,6 +7,7 @@ import * as flow from '@cleanquote/workflow';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
+import { consumeRateLimit } from '../rate-limit';
 import { assertPermission, requestContext, requireActor, setActiveOrganisation } from '../session';
 
 /**
@@ -408,6 +409,32 @@ export async function setFieldStatusAction(formData: FormData): Promise<void> {
   revalidatePath(`/quotes/${String(formData.get('quoteId') ?? '')}`);
 }
 
+export async function setPhotoVisibilityAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  assertPermission(actor, 'quote.edit');
+  await flow.setMediaProposalVisibility({
+    userId: actor.userId,
+    organisationId: actor.organisationId,
+    fileId: String(formData.get('fileId') ?? ''),
+    allow: formData.get('allow') === 'yes',
+  });
+  revalidatePath(`/quotes/${String(formData.get('quoteId') ?? '')}`);
+}
+
+export async function deletePhotoAction(formData: FormData): Promise<void> {
+  const actor = await requireActor();
+  assertPermission(actor, 'quote.edit');
+  await flow.deleteMedia({
+    userId: actor.userId,
+    organisationId: actor.organisationId,
+    fileId: String(formData.get('fileId') ?? ''),
+    reason: String(formData.get('reason') ?? '') || null,
+  });
+  const quoteId = String(formData.get('quoteId') ?? '');
+  revalidatePath(`/quotes/${quoteId}`);
+  revalidatePath(`/quotes/${quoteId}/capture`);
+}
+
 // ---------------------------------------------------------------------------
 // AI
 // ---------------------------------------------------------------------------
@@ -420,6 +447,18 @@ export async function runExtractionAction(
   assertPermission(actor, 'quote.edit');
   const quoteId = String(formData.get('quoteId') ?? '');
   const note = String(formData.get('note') ?? '').trim();
+
+  // Model calls cost money and a stuck finger should not spend it. The
+  // organisation is the key rather than the user: the budget is the company's.
+  const limit = await consumeRateLimit(`extraction:${actor.organisationId}`, {
+    limit: 30,
+    windowSeconds: 300,
+  });
+  if (!limit.allowed) {
+    return {
+      error: `The assistant has been asked to analyse a lot in a short time. Try again in ${limit.retryAfterSeconds} seconds.`,
+    };
+  }
 
   try {
     const outcome = await flow.runExtraction({
@@ -614,6 +653,16 @@ export async function acceptProposalAction(
   if (!signerName) return { error: 'Enter the name of the person accepting.' };
 
   const context = await requestContext();
+  // Keyed on the caller, never on the token: keying on the token would let one
+  // visitor lock a client out of accepting their own proposal.
+  const limit = await consumeRateLimit(`proposal-decision:${context.ip ?? 'unknown'}`, {
+    limit: 20,
+    windowSeconds: 600,
+  });
+  if (!limit.allowed) {
+    return { error: 'Too many attempts. Please wait a moment and try again.' };
+  }
+
   const result = await flow.acceptProposalAsClient({
     token,
     signerName,

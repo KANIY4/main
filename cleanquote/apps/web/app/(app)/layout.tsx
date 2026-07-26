@@ -1,4 +1,5 @@
 import { BrandHeader } from '@/components/brand-header';
+import { ServiceWorkerRegistration } from '@/components/service-worker';
 import { SiteNav } from '@/components/site-nav';
 
 /**
@@ -19,6 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main>
         <div className="wrap">{children}</div>
       </main>
+      <ServiceWorkerRegistration />
     </>
   );
 }

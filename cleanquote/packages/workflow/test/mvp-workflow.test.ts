@@ -794,3 +794,143 @@ suite('MVP workflow — approval, proposal and client acceptance', () => {
     expect(emails.every((email) => email.status === 'sent')).toBe(true);
   });
 });
+
+suite('MVP workflow — captured media', () => {
+  /** A one-pixel JPEG: real magic bytes, so the type check is genuinely exercised. */
+  const JPEG = new Uint8Array(
+    new Uint8Array([
+      0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0xff, 0xd9,
+    ]),
+  ) as Uint8Array<ArrayBuffer>;
+
+  let fileId: string;
+
+  beforeAll(async () => {
+    if (!available) return;
+    const { mkdtempSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    process.env['STORAGE_LOCAL_ROOT'] = mkdtempSync(join(tmpdir(), 'cq-media-'));
+  });
+
+  it('stores a photo under a key prefixed with the owning organisation', async () => {
+    const result = await workflow.uploadCaptureMedia({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      quoteId,
+      clientUploadId: 'capture-001',
+      originalFilename: 'dock.jpg',
+      mimeType: 'image/jpeg',
+      bytes: JPEG,
+    });
+    fileId = result.fileId;
+
+    expect(result.duplicate).toBe(false);
+
+    const photos = await workflow.listQuoteMedia(owner.userId, quoteId);
+    const stored = photos.find((photo) => photo.id === fileId);
+    expect(stored?.storage_path.startsWith(`${owner.organisationId}/`)).toBe(true);
+  });
+
+  it('returns the original record when the same capture is uploaded again', async () => {
+    const retried = await workflow.uploadCaptureMedia({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      quoteId,
+      clientUploadId: 'capture-001',
+      originalFilename: 'dock.jpg',
+      mimeType: 'image/jpeg',
+      bytes: JPEG,
+    });
+
+    expect(retried.duplicate).toBe(true);
+    expect(retried.fileId).toBe(fileId);
+  });
+
+  it('refuses a file whose contents do not match the type it claims', async () => {
+    await expect(
+      workflow.uploadCaptureMedia({
+        userId: owner.userId,
+        organisationId: owner.organisationId,
+        quoteId,
+        clientUploadId: 'capture-002',
+        originalFilename: 'not-really.jpg',
+        mimeType: 'image/jpeg',
+        bytes: new Uint8Array(new Uint8Array([0x4d, 0x5a, 0x90, 0x00])) as Uint8Array<ArrayBuffer>,
+      }),
+    ).rejects.toThrow(workflow.UploadRejectedError);
+  });
+
+  it('refuses a file type that is not an image at all', async () => {
+    await expect(
+      workflow.uploadCaptureMedia({
+        userId: owner.userId,
+        organisationId: owner.organisationId,
+        quoteId,
+        clientUploadId: 'capture-003',
+        originalFilename: 'terms.pdf',
+        mimeType: 'application/pdf',
+        bytes: JPEG,
+      }),
+    ).rejects.toThrow(workflow.UploadRejectedError);
+  });
+
+  it('keeps a photo out of the client proposal until it is explicitly included', async () => {
+    const before = await workflow.listQuoteMedia(owner.userId, quoteId);
+    expect(before.find((photo) => photo.id === fileId)?.allow_in_proposal).toBe(false);
+
+    await workflow.setMediaProposalVisibility({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      fileId,
+      allow: true,
+    });
+
+    const after = await workflow.listQuoteMedia(owner.userId, quoteId);
+    expect(after.find((photo) => photo.id === fileId)?.allow_in_proposal).toBe(true);
+  });
+
+  it('hides a photo from a client without destroying the evidence', async () => {
+    await workflow.setMediaProposalVisibility({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      fileId,
+      allow: false,
+    });
+
+    const photos = await workflow.listQuoteMedia(owner.userId, quoteId);
+    const photo = photos.find((row) => row.id === fileId);
+    expect(photo).toBeDefined();
+    expect(photo?.allow_in_proposal).toBe(false);
+  });
+
+  it('does not show one organisation the photos of another', async () => {
+    const seen = await workflow.listQuoteMedia(rival.userId, quoteId);
+    expect(seen).toHaveLength(0);
+  });
+
+  it('issues an expiring link rather than a permanent address', async () => {
+    const link = await workflow.mediaLink(owner.userId, fileId);
+    expect(link).toContain('expires=');
+    expect(link).toContain('signature=');
+  });
+
+  it('records who deleted a photo, and stops listing it', async () => {
+    await workflow.deleteMedia({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      fileId,
+      reason: 'Contained a visitor badge.',
+    });
+
+    const remaining = await workflow.listQuoteMedia(owner.userId, quoteId);
+    expect(remaining.find((photo) => photo.id === fileId)).toBeUndefined();
+
+    const actions = await withUser(owner.userId, async (db) => {
+      const { auditStore } = await import('@cleanquote/database');
+      const rows = await auditStore.listAudit(db, owner.organisationId, 200);
+      return rows.filter((row) => row.entity_id === fileId).map((row) => row.action);
+    });
+    expect(actions).toContain('quote.photo_deleted');
+  });
+});

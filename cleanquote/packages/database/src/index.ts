@@ -7,6 +7,7 @@ export * as rateCardStore from './rate-card-store';
 export * as aiStore from './ai-store';
 export * as proposalStore from './proposal-store';
 export * as auditStore from './audit-store';
+export * as mediaStore from './media-store';
 export * from './pricing-input';
 export { SYSTEM_ROLE_IDS } from './tenancy-store';
 export type { SystemRoleCode } from './tenancy-store';

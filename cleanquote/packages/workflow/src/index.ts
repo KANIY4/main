@@ -5,3 +5,4 @@ export * from './ai-review';
 export * from './proposal';
 export * from './invitations';
 export * from './settings';
+export * from './media';
