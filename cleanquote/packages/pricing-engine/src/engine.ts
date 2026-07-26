@@ -59,10 +59,23 @@ function computeScenario(input: QuoteCalculationInput, scenario: ScenarioConfig)
     occurrences,
   );
 
+  // Risk follows the work it belongs to. A one-off job's risk register must not
+  // surface as an annual contract value the client never agreed to.
+  const directOneOff = dec(labour.oneOffCost).plus(dec(costs.oneOff));
+  const totalDirect = directRecurring.plus(directOneOff);
+  const recurringRiskShare = totalDirect.isZero() ? ONE : directRecurring.div(totalDirect);
+
   const contingency = computeContingency(
     input.risks,
     scenario,
     directRecurring.plus(overheads.fixedTotal),
+    recurringRiskShare,
+  );
+  const oneOffContingency = computeContingency(
+    input.risks,
+    scenario,
+    directOneOff,
+    ONE.minus(recurringRiskShare),
   );
 
   const recurringCostBase = directRecurring.plus(overheads.fixedTotal).plus(dec(contingency.total));
@@ -80,9 +93,7 @@ function computeScenario(input: QuoteCalculationInput, scenario: ScenarioConfig)
   const roundedAnnual = roundToPolicy(discounted, input.rounding);
 
   // ---- one-off (mobilisation, initial clean) -------------------------------
-  const oneOffCostBase = dec(labour.oneOffCost)
-    .plus(dec(costs.oneOff))
-    .mul(ONE.plus(fromPct(scenario.contingencyPct)));
+  const oneOffCostBase = directOneOff.plus(dec(oneOffContingency.total));
   const roundedOneOff = oneOffCostBase.isZero()
     ? ZERO
     : roundToPolicy(solvePrice(oneOffCostBase, scenario.pricingBasis, ZERO), input.rounding);
@@ -117,6 +128,8 @@ function computeScenario(input: QuoteCalculationInput, scenario: ScenarioConfig)
 
   const grossProfit = annualExTax.minus(totalRecurringCost);
   const contributionMargin = annualExTax.minus(directRecurring);
+  const firstYearRevenue = annualExTax.plus(oneOffExTax);
+  const overallProfit = firstYearRevenue.minus(totalCost);
 
   // ---- derived recurring values -------------------------------------------
   const taxRate = fromPct(input.tax.ratePct);
@@ -182,6 +195,8 @@ function computeScenario(input: QuoteCalculationInput, scenario: ScenarioConfig)
       markupPct: toPct(safeDivide(grossProfit, totalRecurringCost), 4),
       contributionMargin: money(contributionMargin),
       contributionMarginPct: toPct(safeDivide(contributionMargin, annualExTax), 4),
+      overallGrossProfit: money(overallProfit),
+      overallGrossMarginPct: toPct(safeDivide(overallProfit, firstYearRevenue), 4),
     },
     hourlyRecovery: money(safeDivide(annualExTax, recurringPaidHours), 4),
     occurrencesPerYear: hours(occurrences),

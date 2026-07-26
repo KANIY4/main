@@ -10,19 +10,8 @@ import type {
   ScenarioConfig,
 } from '@cleanquote/types';
 
-import type {
-  Decimal} from './decimal.js';
-import {
-  dec,
-  fromPct,
-  hours,
-  money,
-  ONE,
-  PricingError,
-  safeDivide,
-  sum,
-  ZERO,
-} from './decimal.js';
+import type { Decimal } from './decimal.js';
+import { dec, fromPct, hours, money, ONE, PricingError, safeDivide, sum, ZERO } from './decimal.js';
 import { occurrencesPerYear } from './schedule.js';
 
 /** Categories whose hours are scaled by the scenario's supervision multiplier. */

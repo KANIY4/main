@@ -42,10 +42,10 @@ export const serviceScheduleSchema = z
     budgetedCallOutsPerYear: nonNegativeNumber.optional(),
     serviceOnPublicHolidays: z.boolean().optional(),
   })
-  .refine(
-    (s) => s.pattern !== 'custom_per_year' || s.occurrencesPerYear !== undefined,
-    { message: 'A custom_per_year schedule requires occurrencesPerYear', path: ['occurrencesPerYear'] },
-  );
+  .refine((s) => s.pattern !== 'custom_per_year' || s.occurrencesPerYear !== undefined, {
+    message: 'A custom_per_year schedule requires occurrencesPerYear',
+    path: ['occurrencesPerYear'],
+  });
 
 export const calendarAssumptionsSchema = z.object({
   weeksPerYear: z.number().min(1).max(53),
@@ -186,10 +186,10 @@ export const overheadRuleSchema = z
     value: nonNegativeDecimalString('overhead value'),
     schedule: serviceScheduleSchema.optional(),
   })
-  .refine(
-    (rule) => rule.method !== 'percent_of_revenue' || Number(rule.value) < 100,
-    { message: 'Revenue-based overhead of 100% or more leaves no revenue to price against', path: ['value'] },
-  );
+  .refine((rule) => rule.method !== 'percent_of_revenue' || Number(rule.value) < 100, {
+    message: 'Revenue-based overhead of 100% or more leaves no revenue to price against',
+    path: ['value'],
+  });
 
 export const riskItemSchema = z.object({
   id: shortText,

@@ -1,6 +1,6 @@
 import type { PricingBasis } from '@cleanquote/types';
 
-import type { Decimal} from './decimal.js';
+import type { Decimal } from './decimal.js';
 import { fromPct, ONE, PricingError } from './decimal.js';
 
 /**

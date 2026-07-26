@@ -46,6 +46,22 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/seed-cases:
+    dependencies:
+      '@cleanquote/pricing-engine':
+        specifier: workspace:*
+        version: link:../pricing-engine
+      '@cleanquote/types':
+        specifier: workspace:*
+        version: link:../types
+      '@cleanquote/validation':
+        specifier: workspace:*
+        version: link:../validation
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/types:
     devDependencies:
       typescript:

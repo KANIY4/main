@@ -180,6 +180,78 @@ describe('calculateQuote — contingency and risk', () => {
     expect(s.contingency.topRisks[0]?.code).toBe('short_cleaning_window');
     expect(s.contingency.topRisks).toHaveLength(1);
   });
+
+  it('loads a one-off jobs risk onto its one-off price, not onto an annual value', () => {
+    const oneOffOnly: LabourLine = {
+      id: 'window-clean',
+      kind: 'staffing',
+      label: 'One-off external glass clean',
+      category: 'routine',
+      labourProfileCode: 'cleaner',
+      schedule: { pattern: 'one_off' },
+      cleanersPerShift: 2,
+      hoursPerShift: 6,
+    };
+    const { s } = single(baseInput({ labourLines: [oneOffOnly], risks }));
+
+    // The job has no recurring work, so it must not report an annual contract value.
+    expect(s.price.annualExTax).toBe('0.00');
+    expect(s.contingency.riskContingency).toBe('0.00');
+    expect(Number(s.price.oneOffExTax)).toBeGreaterThan(0);
+  });
+
+  it('splits risk between recurring and one-off work in proportion to direct cost', () => {
+    const initial: LabourLine = {
+      id: 'initial',
+      kind: 'staffing',
+      label: 'Initial deep clean',
+      category: 'initial_clean',
+      labourProfileCode: 'cleaner',
+      schedule: { pattern: 'one_off' },
+      cleanersPerShift: 4,
+      hoursPerShift: 8,
+    };
+    const { s } = single(baseInput({ labourLines: [...baseInput().labourLines, initial], risks }));
+    // Recurring cost 15,600 against one-off 960: the recurring side carries
+    // 15600/16560 of the 1,200 expected value.
+    expect(s.contingency.riskExpectedValue).toBe('1200.00');
+    expect(s.contingency.riskContingency).toBe('1130.43');
+  });
+});
+
+describe('calculateQuote — whole-of-deal margin', () => {
+  it('reports an overall margin that spans recurring and one-off revenue', () => {
+    const initial: LabourLine = {
+      id: 'initial',
+      kind: 'staffing',
+      label: 'Initial deep clean',
+      category: 'initial_clean',
+      labourProfileCode: 'cleaner',
+      schedule: { pattern: 'one_off' },
+      cleanersPerShift: 4,
+      hoursPerShift: 8,
+    };
+    const { s } = single(baseInput({ labourLines: [...baseInput().labourLines, initial] }));
+    // 20,800 + 1,280 revenue against 15,600 + 960 cost, all at a 25% margin.
+    expect(s.margin.overallGrossProfit).toBe('5520.00');
+    expect(s.margin.overallGrossMarginPct).toBe('25.0000');
+  });
+
+  it('reports a meaningful margin for a job with no recurring revenue at all', () => {
+    const oneOffOnly: LabourLine = {
+      id: 'window-clean',
+      kind: 'staffing',
+      label: 'One-off external glass clean',
+      category: 'routine',
+      labourProfileCode: 'cleaner',
+      schedule: { pattern: 'one_off' },
+      cleanersPerShift: 2,
+      hoursPerShift: 6,
+    };
+    const { s } = single(baseInput({ labourLines: [oneOffOnly] }));
+    expect(s.margin.grossMarginPct).toBe('0.0000');
+    expect(s.margin.overallGrossMarginPct).toBe('25.0000');
+  });
 });
 
 describe('calculateQuote — guardrails and negotiation', () => {

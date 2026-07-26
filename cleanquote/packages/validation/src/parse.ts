@@ -26,7 +26,9 @@ export function toIssues(error: z.ZodError): ValidationIssue[] {
 
 export function safeParse<T>(schema: z.ZodType<T>, value: unknown): ParseResult<T> {
   const result = schema.safeParse(value);
-  return result.success ? { ok: true, data: result.data } : { ok: false, issues: toIssues(result.error) };
+  return result.success
+    ? { ok: true, data: result.data }
+    : { ok: false, issues: toIssues(result.error) };
 }
 
 export class ValidationError extends Error {

@@ -21,7 +21,10 @@ function extraction(overrides: Record<string, unknown> = {}) {
       },
     ],
     assets: [
-      { assetTypeCode: 'window', visibleQuantity: { value: 8, confidence: 0.7, evidenceRefs: ['photo-2'] } },
+      {
+        assetTypeCode: 'window',
+        visibleQuantity: { value: 8, confidence: 0.7, evidenceRefs: ['photo-2'] },
+      },
     ],
     observations: [],
     risks: [],
@@ -63,7 +66,8 @@ describe('walkthroughExtractionSchema', () => {
   });
 
   it('rejects an extraction missing a required section entirely', () => {
-    const { spaces: _spaces, ...withoutSpaces } = extraction();
+    const withoutSpaces: Record<string, unknown> = extraction();
+    delete withoutSpaces['spaces'];
     expect(safeParse(walkthroughExtractionSchema, withoutSpaces).ok).toBe(false);
   });
 });
@@ -80,7 +84,10 @@ describe('extractedAssetSchema', () => {
   });
 
   it('rejects output that asserts a plain total instead of a visible count', () => {
-    const asset = { assetTypeCode: 'window', quantity: { value: 8, confidence: 0.7, evidenceRefs: [] } };
+    const asset = {
+      assetTypeCode: 'window',
+      quantity: { value: 8, confidence: 0.7, evidenceRefs: [] },
+    };
     expect(safeParse(extractedAssetSchema, asset).ok).toBe(false);
   });
 
@@ -127,7 +134,11 @@ describe('extractedComplianceIndicatorSchema', () => {
 
 describe('parseOrThrow', () => {
   it('returns parsed data on success', () => {
-    const parsed = parseOrThrow(walkthroughExtractionSchema, extraction(), 'walkthrough extraction');
+    const parsed = parseOrThrow(
+      walkthroughExtractionSchema,
+      extraction(),
+      'walkthrough extraction',
+    );
     expect(parsed.spaces).toHaveLength(1);
   });
 

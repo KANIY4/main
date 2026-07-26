@@ -428,11 +428,20 @@ export interface PriceBreakdown {
 }
 
 export interface MarginBreakdown {
+  /** Recurring contract only. */
   readonly grossProfit: string;
   readonly grossMarginPct: string;
   readonly markupPct: string;
   readonly contributionMargin: string;
   readonly contributionMarginPct: string;
+  /**
+   * Whole-of-deal margin: recurring plus one-off revenue against recurring plus
+   * one-off cost. For a purely one-off job — a window clean, a post-construction
+   * detail — the recurring figures above are all zero and this is the only margin
+   * that means anything.
+   */
+  readonly overallGrossProfit: string;
+  readonly overallGrossMarginPct: string;
 }
 
 export interface NegotiationRange {

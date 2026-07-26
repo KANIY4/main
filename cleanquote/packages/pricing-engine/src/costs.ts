@@ -7,7 +7,7 @@ import type {
   OverheadRule,
 } from '@cleanquote/types';
 
-import type { Decimal} from './decimal.js';
+import type { Decimal } from './decimal.js';
 import { dec, fromPct, money, PricingError, sum, ZERO } from './decimal.js';
 import { occurrencesPerYear } from './schedule.js';
 

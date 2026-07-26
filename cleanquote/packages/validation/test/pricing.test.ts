@@ -90,7 +90,10 @@ describe('quoteCalculationInputSchema', () => {
 
   it('rejects duplicate labour line ids', () => {
     const line = validInput().labourLines[0];
-    const result = safeParse(quoteCalculationInputSchema, validInput({ labourLines: [line, line] }));
+    const result = safeParse(
+      quoteCalculationInputSchema,
+      validInput({ labourLines: [line, line] }),
+    );
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.issues[0]?.message).toContain('Duplicate labour line id');
   });
@@ -184,7 +187,13 @@ describe('labourLineSchema', () => {
 
 describe('costLineSchema', () => {
   it('requires a schedule for a per-occurrence cost', () => {
-    const base = { id: 'w', label: 'Waste', category: 'waste', method: 'per_occurrence', amount: '45' };
+    const base = {
+      id: 'w',
+      label: 'Waste',
+      category: 'waste',
+      method: 'per_occurrence',
+      amount: '45',
+    };
     expect(safeParse(costLineSchema, base).ok).toBe(false);
     expect(
       safeParse(costLineSchema, { ...base, schedule: { pattern: 'weekly', daysPerWeek: 2 } }).ok,
