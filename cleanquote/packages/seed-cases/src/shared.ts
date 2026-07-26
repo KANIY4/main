@@ -110,10 +110,10 @@ export const OVERHEADS: readonly OverheadRule[] = [
 ];
 
 export const GUARDRAILS: Guardrails = {
-  minGrossMarginPct: '22',
-  minContributionMarginPct: '30',
-  minHourlyRecovery: '48',
-  minChargePerVisit: '45',
+  minGrossMarginPct: '12',
+  minContributionMarginPct: '22',
+  minHourlyRecovery: '46',
+  minChargePerVisit: '40',
 };
 
 export const GST: TaxConfig = {
@@ -127,7 +127,7 @@ export const SCENARIOS: readonly ScenarioConfig[] = [
   {
     key: 'aggressive',
     label: 'Win Strategy',
-    pricingBasis: { type: 'margin', targetMarginPct: '28' },
+    pricingBasis: { type: 'margin', targetMarginPct: '14' },
     contingencyPct: '1.5',
     riskContingencyMultiplier: '0.6',
     productivityMultiplier: 0.95,
@@ -138,7 +138,7 @@ export const SCENARIOS: readonly ScenarioConfig[] = [
   {
     key: 'balanced',
     label: 'Recommended',
-    pricingBasis: { type: 'margin', targetMarginPct: '35' },
+    pricingBasis: { type: 'margin', targetMarginPct: '20' },
     contingencyPct: '3',
     riskContingencyMultiplier: '1',
     productivityMultiplier: 1,
@@ -149,7 +149,7 @@ export const SCENARIOS: readonly ScenarioConfig[] = [
   {
     key: 'premium',
     label: 'Margin Protection',
-    pricingBasis: { type: 'margin', targetMarginPct: '42' },
+    pricingBasis: { type: 'margin', targetMarginPct: '27' },
     contingencyPct: '6',
     riskContingencyMultiplier: '1.4',
     productivityMultiplier: 1.08,

@@ -4,8 +4,8 @@ import {
   extractedAssetSchema,
   extractedComplianceIndicatorSchema,
   walkthroughExtractionSchema,
-} from '../src/ai.js';
-import { parseOrThrow, safeParse, ValidationError } from '../src/parse.js';
+} from '../src/ai';
+import { parseOrThrow, safeParse, ValidationError } from '../src/parse';
 
 function extraction(overrides: Record<string, unknown> = {}) {
   return {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { mediumText, shortText, unitInterval } from './primitives.js';
+import { mediumText, shortText, unitInterval } from './primitives';
 
 /**
  * AI output schemas.

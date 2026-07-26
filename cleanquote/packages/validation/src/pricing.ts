@@ -11,7 +11,7 @@ import {
   positiveNumber,
   shortText,
   unitInterval,
-} from './primitives.js';
+} from './primitives';
 
 /**
  * Runtime schema for the pricing engine's input.

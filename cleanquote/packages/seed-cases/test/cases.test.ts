@@ -3,7 +3,7 @@ import type { QuoteCalculationResult, ScenarioKey } from '@cleanquote/types';
 import { quoteCalculationInputSchema, safeParse } from '@cleanquote/validation';
 import { describe, expect, it } from 'vitest';
 
-import { SEED_CASES, seedCaseById } from '../src/cases.js';
+import { SEED_CASES, seedCaseById } from '../src/cases';
 
 function priced(id: string): QuoteCalculationResult {
   const seedCase = seedCaseById(id);
@@ -57,7 +57,7 @@ describe('every seed case', () => {
         }
         // Measured on the whole deal: a purely one-off job has no recurring
         // revenue, so the recurring margin is not the meaningful figure.
-        expect(Number(s.margin.overallGrossMarginPct)).toBeGreaterThanOrEqual(22);
+        expect(Number(s.margin.overallGrossMarginPct)).toBeGreaterThanOrEqual(12);
       }
     },
   );
@@ -121,10 +121,10 @@ describe('case 2 — high-traffic childcare facility', () => {
 
   it('raises production hours for compliance and soil', () => {
     const classrooms = balanced.labour.lines.find((l) => l.lineId === 'classrooms');
-    // 8 rooms x 26 minutes = 3.4667 h, x1.25 soil x1.15 compliance = 4.9833 h a visit.
+    // 8 rooms x 14 minutes = 1.8667 h, x1.25 soil x1.15 compliance = 2.6833 h a visit.
     const perVisit =
       Number(classrooms?.productiveHoursPerYear) / Number(classrooms?.occurrencesPerYear);
-    expect(perVisit).toBeCloseTo(4.9833, 3);
+    expect(perVisit).toBeCloseTo(2.6833, 3);
   });
 
   it('carries the daytime round as a fixed staffing commitment', () => {

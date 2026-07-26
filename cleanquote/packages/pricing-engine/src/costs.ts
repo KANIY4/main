@@ -7,9 +7,9 @@ import type {
   OverheadRule,
 } from '@cleanquote/types';
 
-import type { Decimal } from './decimal.js';
-import { dec, fromPct, money, PricingError, sum, ZERO } from './decimal.js';
-import { occurrencesPerYear } from './schedule.js';
+import type { Decimal } from './decimal';
+import { dec, fromPct, money, PricingError, sum, ZERO } from './decimal';
+import { occurrencesPerYear } from './schedule';
 
 function annualiseCostLine(
   line: CostLine,

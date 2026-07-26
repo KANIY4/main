@@ -1,6 +1,6 @@
 import type { CalendarAssumptions, ServiceSchedule } from '@cleanquote/types';
 
-import { dec, Decimal, PricingError, ZERO } from './decimal.js';
+import { dec, Decimal, PricingError, ZERO } from './decimal';
 
 /**
  * Reduces any schedule to occurrences per year.

@@ -1,0 +1,84 @@
+name: CleanQuote CI
+
+on:
+  push:
+    branches: ['**']
+    paths: ['cleanquote/**', '.github/workflows/cleanquote-ci.yml']
+  pull_request:
+    paths: ['cleanquote/**', '.github/workflows/cleanquote-ci.yml']
+
+concurrency:
+  group: cleanquote-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: cleanquote
+
+jobs:
+  checks:
+    name: Format, lint, types, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: cleanquote/pnpm-lock.yaml
+
+      # --frozen-lockfile: CI must fail on an out-of-date lockfile rather than
+      # quietly resolving a different dependency tree than the author tested.
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run format:check
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test:coverage
+
+      - name: Build web application
+        run: pnpm --filter @cleanquote/web run build
+
+  database:
+    name: Migrations and row level security
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      # The security tests apply the real migrations to a real Postgres and
+      # assert cross-tenant isolation. They are the reason this job exists.
+      - name: Install PostgreSQL 16
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-16
+
+      - name: Apply migrations and run security tests
+        run: ./supabase/test/run-db-tests.sh
+        env:
+          PG_BIN: /usr/lib/postgresql/16/bin
+
+  dependencies:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: cleanquote/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      # Fails the build on high or critical advisories; lower severities are
+      # reported for the weekly review rather than blocking a merge.
+      - run: pnpm audit --audit-level high

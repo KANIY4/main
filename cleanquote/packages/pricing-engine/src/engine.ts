@@ -7,9 +7,9 @@ import type {
 } from '@cleanquote/types';
 import { CALCULATION_SCHEMA_VERSION } from '@cleanquote/types';
 
-import { computeConfidence } from './confidence.js';
-import { computeContingency, riskExposureRatio } from './contingency.js';
-import { computeCosts, computeOverheads, resolveRevenueOverheads } from './costs.js';
+import { computeConfidence } from './confidence';
+import { computeContingency, riskExposureRatio } from './contingency';
+import { computeCosts, computeOverheads, resolveRevenueOverheads } from './costs';
 import {
   dec,
   Decimal,
@@ -23,12 +23,12 @@ import {
   sum,
   toPct,
   ZERO,
-} from './decimal.js';
-import { applyGuardrails } from './guardrails.js';
-import { stableHash } from './hash.js';
-import { computeLabour } from './labour.js';
-import { recommendScenario } from './recommend.js';
-import { solvePrice } from './solver.js';
+} from './decimal';
+import { applyGuardrails } from './guardrails';
+import { stableHash } from './hash';
+import { computeLabour } from './labour';
+import { recommendScenario } from './recommend';
+import { solvePrice } from './solver';
 
 /**
  * The billing cadence a client actually sees. Taken from the routine labour with the
@@ -123,7 +123,10 @@ function computeScenario(input: QuoteCalculationInput, scenario: ScenarioConfig)
   );
   const overheadTotal = overheads.fixedTotal.plus(revenueOverhead);
   const totalRecurringCost = recurringCostBase.plus(revenueOverhead);
-  const totalOneOffCost = dec(labour.oneOffCost).plus(dec(costs.oneOff));
+  // Includes the one-off share of contingency, mirroring how the recurring cost
+  // base does. Reporting a cost that excludes a loading the price already carries
+  // would overstate the margin on one-off work.
+  const totalOneOffCost = directOneOff.plus(dec(oneOffContingency.total));
   const totalCost = totalRecurringCost.plus(totalOneOffCost);
 
   const grossProfit = annualExTax.minus(totalRecurringCost);

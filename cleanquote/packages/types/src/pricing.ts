@@ -8,8 +8,8 @@
  *    measurements, which are inherently floating point).
  *  - A `Factor` of 1 means "no adjustment".
  */
-import type { Money, RoundingPolicy } from './money.js';
-import type { CalendarAssumptions, ServiceSchedule } from './schedule.js';
+import type { Money, RoundingPolicy } from './money';
+import type { CalendarAssumptions, ServiceSchedule } from './schedule';
 
 /** Bumped whenever the arithmetic changes. Stored on every calculation snapshot. */
 export const CALCULATION_SCHEMA_VERSION = '1.0.0';

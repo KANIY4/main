@@ -1,6 +1,6 @@
 import type { ContingencyBreakdown, RiskItem, ScenarioConfig } from '@cleanquote/types';
 
-import { dec, Decimal, fromPct, money, sum, ZERO } from './decimal.js';
+import { dec, Decimal, fromPct, money, sum, ZERO } from './decimal';
 
 /** Risks that have been transferred or fully mitigated no longer carry a cost loading. */
 const PRICED_STATUSES = new Set(['open', 'accepted']);

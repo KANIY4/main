@@ -1,9 +1,9 @@
 import type { ScenarioResult, StrategicContext } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { computeConfidence } from '../src/confidence.js';
-import { dec, ZERO } from '../src/decimal.js';
-import { recommendScenario } from '../src/recommend.js';
+import { computeConfidence } from '../src/confidence';
+import { dec, ZERO } from '../src/decimal';
+import { recommendScenario } from '../src/recommend';
 
 /** Only the fields the recommender reads; the rest of ScenarioResult is irrelevant here. */
 function stub(

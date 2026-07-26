@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "noEmit": true,
+    // This package runs in both halves of the app and deliberately inspects
+    // `window` to refuse serving server secrets from a browser bundle.
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*.ts"]
+}

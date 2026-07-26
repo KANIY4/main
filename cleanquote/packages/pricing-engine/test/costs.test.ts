@@ -1,9 +1,9 @@
 import type { CostLine, OverheadRule } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { computeCosts, computeOverheads, resolveRevenueOverheads } from '../src/costs.js';
-import { dec, PricingError, ZERO } from '../src/decimal.js';
-import { SIMPLE_CALENDAR } from './helpers/fixtures.js';
+import { computeCosts, computeOverheads, resolveRevenueOverheads } from '../src/costs';
+import { dec, PricingError, ZERO } from '../src/decimal';
+import { SIMPLE_CALENDAR } from './helpers/fixtures';
 
 const RECURRING_HOURS = dec('520');
 

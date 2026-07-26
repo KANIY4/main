@@ -1,9 +1,9 @@
 import type { LabourLine, OnCostRule } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { dec, PricingError } from '../src/decimal.js';
-import { computeLabour, effectiveHourlyCost } from '../src/labour.js';
-import { CLEANER, baseInput, scenario } from './helpers/fixtures.js';
+import { dec, PricingError } from '../src/decimal';
+import { computeLabour, effectiveHourlyCost } from '../src/labour';
+import { CLEANER, baseInput, scenario } from './helpers/fixtures';
 
 describe('effectiveHourlyCost', () => {
   const cascade: OnCostRule[] = [

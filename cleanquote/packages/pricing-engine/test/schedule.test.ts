@@ -2,8 +2,8 @@ import type { CalendarAssumptions } from '@cleanquote/types';
 import { DEFAULT_CALENDAR } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { PricingError } from '../src/decimal.js';
-import { isOneOffSchedule, occurrencesPerYear } from '../src/schedule.js';
+import { PricingError } from '../src/decimal';
+import { isOneOffSchedule, occurrencesPerYear } from '../src/schedule';
 
 const calendar: CalendarAssumptions = {
   weeksPerYear: 52,

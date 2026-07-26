@@ -1,8 +1,8 @@
 import type { GuardrailOverride } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { dec, ZERO } from '../src/decimal.js';
-import { applyGuardrails, type GuardrailInputs } from '../src/guardrails.js';
+import { dec, ZERO } from '../src/decimal';
+import { applyGuardrails, type GuardrailInputs } from '../src/guardrails';
 
 function inputs(overrides: Partial<GuardrailInputs> = {}): GuardrailInputs {
   return {

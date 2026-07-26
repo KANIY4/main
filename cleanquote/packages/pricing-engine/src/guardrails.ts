@@ -5,8 +5,8 @@ import type {
   Guardrails,
 } from '@cleanquote/types';
 
-import { Decimal, dec, fromPct, money, ONE, safeDivide, toPct, ZERO } from './decimal.js';
-import { priceForMinimumMargin } from './solver.js';
+import { Decimal, dec, fromPct, money, ONE, safeDivide, toPct, ZERO } from './decimal';
+import { priceForMinimumMargin } from './solver';
 
 export interface GuardrailInputs {
   readonly guardrails: Guardrails;

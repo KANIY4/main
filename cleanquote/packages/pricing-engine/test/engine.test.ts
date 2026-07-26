@@ -2,9 +2,9 @@ import type { CostLine, LabourLine, OverheadRule, RiskItem } from '@cleanquote/t
 import { CALCULATION_SCHEMA_VERSION, DEFAULT_CALENDAR } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { PricingError } from '../src/decimal.js';
-import { calculateQuote } from '../src/engine.js';
-import { baseInput, scenario } from './helpers/fixtures.js';
+import { PricingError } from '../src/decimal';
+import { calculateQuote } from '../src/engine';
+import { baseInput, scenario } from './helpers/fixtures';
 
 function single(input = baseInput()) {
   const result = calculateQuote(input);
@@ -416,5 +416,38 @@ describe('calculateQuote — input validation', () => {
     const { s } = single(baseInput({ calendar: DEFAULT_CALENDAR }));
     expect(s.occurrencesPerYear).toBe('260.8875');
     expect(s.price.annualExTax).toBe('20871.00');
+  });
+});
+
+describe('calculateQuote — one-off cost reporting', () => {
+  it('counts the one-off share of contingency as one-off cost, not as free margin', () => {
+    const oneOffOnly: LabourLine = {
+      id: 'window-clean',
+      kind: 'staffing',
+      label: 'One-off external glass clean',
+      category: 'routine',
+      labourProfileCode: 'cleaner',
+      schedule: { pattern: 'one_off' },
+      cleanersPerShift: 2,
+      hoursPerShift: 10,
+    };
+    const risks: RiskItem[] = [
+      {
+        id: 'r1',
+        code: 'weather_delay',
+        label: 'High wind may abort the works',
+        probability: 0.5,
+        impactAmount: '1000',
+        status: 'open',
+      },
+    ];
+    const { s } = single(baseInput({ labourLines: [oneOffOnly], risks }));
+
+    // 20 hours x $30 = $600 labour, plus $500 expected risk value.
+    expect(s.totalOneOffCost).toBe('1100.00');
+    // The achieved margin must land on the scenario target, not be inflated by a
+    // loading the cost figure quietly omitted. It differs from an exact 25% only
+    // by the cent-rounding of the price itself.
+    expect(Number(s.margin.overallGrossMarginPct)).toBeCloseTo(25, 3);
   });
 });

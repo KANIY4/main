@@ -1,2 +1,2 @@
-export * from './shared.js';
-export * from './cases.js';
+export * from './shared';
+export * from './cases';

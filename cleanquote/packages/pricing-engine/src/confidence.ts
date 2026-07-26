@@ -1,6 +1,6 @@
 import type { DataCompleteness } from '@cleanquote/types';
 
-import type { Decimal } from './decimal.js';
+import type { Decimal } from './decimal';
 
 const BASE_CONFIDENCE = 0.45;
 const MEASUREMENT_WEIGHT = 0.2;

@@ -5,7 +5,7 @@
  * suggestions that a human confirms, corrects or rejects before they can influence the
  * deterministic engine.
  */
-import type { ComplianceClass, SoilLevel, SurfaceType, TrafficLevel } from './capture.js';
+import type { ComplianceClass, SoilLevel, SurfaceType, TrafficLevel } from './capture';
 
 export interface Candidate<T> {
   readonly value: T;

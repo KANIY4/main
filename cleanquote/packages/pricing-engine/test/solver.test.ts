@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { dec, ONE, PricingError, ZERO } from '../src/decimal.js';
-import { priceForMinimumMargin, solvePrice } from '../src/solver.js';
+import { dec, ONE, PricingError, ZERO } from '../src/decimal';
+import { priceForMinimumMargin, solvePrice } from '../src/solver';
 
 describe('solvePrice', () => {
   it('produces a price whose gross margin equals the target margin', () => {

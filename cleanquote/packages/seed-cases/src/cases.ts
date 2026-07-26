@@ -10,7 +10,7 @@ import {
   OVERHEADS,
   PROFILES,
   SCENARIOS,
-} from './shared.js';
+} from './shared';
 
 /**
  * The five demonstration cases from the product specification.
@@ -73,7 +73,7 @@ export const recurringOffice: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 1650,
         quantityUnit: 'm2',
-        productivity: { method: 'units_per_hour', value: 420 },
+        productivity: { method: 'units_per_hour', value: 800 },
         factors: { furnitureDensity: 1.15, traffic: 1.1 },
       },
       {
@@ -85,7 +85,7 @@ export const recurringOffice: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 750,
         quantityUnit: 'm2',
-        productivity: { method: 'units_per_hour', value: 500 },
+        productivity: { method: 'units_per_hour', value: 900 },
         factors: { traffic: 1.15 },
       },
       {
@@ -97,7 +97,7 @@ export const recurringOffice: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 24,
         quantityUnit: 'fixture',
-        productivity: { method: 'minutes_per_unit', value: 7 },
+        productivity: { method: 'minutes_per_unit', value: 4 },
         factors: { soil: 1.1 },
       },
       {
@@ -109,7 +109,7 @@ export const recurringOffice: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 2,
         quantityUnit: 'each',
-        productivity: { method: 'minutes_per_unit', value: 22 },
+        productivity: { method: 'minutes_per_unit', value: 15 },
         factors: { soil: 1.2 },
       },
       {
@@ -121,7 +121,7 @@ export const recurringOffice: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 140,
         quantityUnit: 'each',
-        productivity: { method: 'minutes_per_unit', value: 0.6 },
+        productivity: { method: 'minutes_per_unit', value: 0.25 },
       },
       {
         id: 'supervision',
@@ -297,7 +297,7 @@ export const childcareFacility: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 8,
         quantityUnit: 'each',
-        productivity: { method: 'minutes_per_unit', value: 26 },
+        productivity: { method: 'minutes_per_unit', value: 14 },
         factors: { soil: 1.25, compliance: 1.15 },
       },
       {
@@ -309,7 +309,7 @@ export const childcareFacility: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 14,
         quantityUnit: 'fixture',
-        productivity: { method: 'minutes_per_unit', value: 9 },
+        productivity: { method: 'minutes_per_unit', value: 6 },
         factors: { soil: 1.3, compliance: 1.15 },
       },
       {
@@ -321,7 +321,7 @@ export const childcareFacility: SeedCase = {
         schedule: { pattern: 'weekly', daysPerWeek: 5, serviceOnPublicHolidays: false },
         quantity: 1,
         quantityUnit: 'each',
-        productivity: { method: 'minutes_per_unit', value: 45 },
+        productivity: { method: 'minutes_per_unit', value: 30 },
         factors: { soil: 1.35, compliance: 1.2 },
       },
       {

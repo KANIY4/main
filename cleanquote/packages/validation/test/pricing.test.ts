@@ -1,7 +1,7 @@
 import { CALCULATION_SCHEMA_VERSION } from '@cleanquote/types';
 import { describe, expect, it } from 'vitest';
 
-import { safeParse } from '../src/parse.js';
+import { safeParse } from '../src/parse';
 import {
   costLineSchema,
   guardrailOverrideSchema,
@@ -9,7 +9,7 @@ import {
   overheadRuleSchema,
   quoteCalculationInputSchema,
   serviceScheduleSchema,
-} from '../src/pricing.js';
+} from '../src/pricing';
 
 function validInput(overrides: Record<string, unknown> = {}) {
   return {

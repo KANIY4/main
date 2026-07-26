@@ -10,9 +10,9 @@ import type {
   ScenarioConfig,
 } from '@cleanquote/types';
 
-import type { Decimal } from './decimal.js';
-import { dec, fromPct, hours, money, ONE, PricingError, safeDivide, sum, ZERO } from './decimal.js';
-import { occurrencesPerYear } from './schedule.js';
+import type { Decimal } from './decimal';
+import { dec, fromPct, hours, money, ONE, PricingError, safeDivide, sum, ZERO } from './decimal';
+import { occurrencesPerYear } from './schedule';
 
 /** Categories whose hours are scaled by the scenario's supervision multiplier. */
 const SUPERVISION_CATEGORIES: ReadonlySet<LabourCategory> = new Set(['supervision', 'management']);
