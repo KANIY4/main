@@ -19,7 +19,8 @@
     "@cleanquote/pricing-engine": "workspace:*",
     "@cleanquote/types": "workspace:*",
     "@cleanquote/validation": "workspace:*",
-    "@cleanquote/storage": "workspace:*"
+    "@cleanquote/storage": "workspace:*",
+    "@cleanquote/pdf": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.18.11",

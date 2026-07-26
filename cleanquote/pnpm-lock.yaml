@@ -162,6 +162,15 @@ importers:
         specifier: 5.9.3
         version: 5.9.3
 
+  packages/pdf:
+    devDependencies:
+      '@types/node':
+        specifier: 22.18.11
+        version: 22.18.11
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+
   packages/pricing-engine:
     dependencies:
       '@cleanquote/types':
@@ -237,6 +246,9 @@ importers:
       '@cleanquote/email':
         specifier: workspace:*
         version: link:../email
+      '@cleanquote/pdf':
+        specifier: workspace:*
+        version: link:../pdf
       '@cleanquote/pricing-engine':
         specifier: workspace:*
         version: link:../pricing-engine

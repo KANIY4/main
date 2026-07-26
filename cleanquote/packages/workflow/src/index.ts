@@ -6,3 +6,4 @@ export * from './proposal';
 export * from './invitations';
 export * from './settings';
 export * from './media';
+export * from './proposal-pdf';

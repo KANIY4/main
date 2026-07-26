@@ -91,6 +91,12 @@ export default async function PublicProposalPage({
         )}
       </section>
 
+      <p>
+        <a className="button button-quiet" href={`/p/${token}/download`}>
+          Download as a PDF
+        </a>
+      </p>
+
       {content.sections.map((section) => (
         <section className="card" key={section.key}>
           <h2>{section.heading}</h2>
