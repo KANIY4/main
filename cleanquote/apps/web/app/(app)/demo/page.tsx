@@ -1,16 +1,17 @@
 import Link from 'next/link';
 
-import { listQuotes, sourceMode } from '@/lib/quote-source';
+import { listDemonstrationQuotes } from '@/lib/quote-source';
 
-export default async function HomePage() {
-  const quotes = await listQuotes();
-  const mode = sourceMode();
+export const metadata = { title: 'Demonstration cases' };
+
+export default async function DemoPage() {
+  const quotes = await listDemonstrationQuotes();
 
   return (
     <div className="stack">
       <div>
-        <p className="eyebrow">Quotes</p>
-        <h1>Pricing workspace</h1>
+        <p className="eyebrow">Demonstration</p>
+        <h1>Worked pricing cases</h1>
         <p className="muted" style={{ maxWidth: '62ch' }}>
           Each quote below is priced live by the deterministic engine — labour built from production
           benchmarks or staffing commitments, costed through the rate card, recovered against
@@ -18,20 +19,17 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {mode === 'demonstration' && (
-        <div className="banner banner-info">
-          <strong>Demonstration mode.</strong> No database is configured, so these quotes come from
-          the seed cases in <code>@cleanquote/seed-cases</code>. Every figure on screen is
-          calculated by the real pricing engine; only persistence and authentication are absent. Set{' '}
-          <code>NEXT_PUBLIC_SUPABASE_URL</code> and <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> to
-          run against Postgres.
-        </div>
-      )}
+      <div className="banner banner-info">
+        <strong>These are worked examples, not your data.</strong> They come from the seed cases in{' '}
+        <code>@cleanquote/seed-cases</code> and are priced live by the real engine, so every figure
+        on screen is genuinely calculated. Your own quotes live in the{' '}
+        <Link href="/dashboard">workspace</Link>.
+      </div>
 
       <ul className="quote-list">
         {quotes.map((quote) => (
           <li key={quote.id}>
-            <Link className="quote-card" href={`/quotes/${quote.id}`}>
+            <Link className="quote-card" href={`/demo/${quote.id}`}>
               <h3>{quote.title}</h3>
               <p className="muted" style={{ marginBottom: 0 }}>
                 {quote.summary}

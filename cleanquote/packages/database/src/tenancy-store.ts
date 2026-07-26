@@ -61,6 +61,26 @@ export async function createOrganisation(
   return { organisationId: org.id };
 }
 
+export interface OrganisationRow {
+  id: string;
+  name: string;
+  slug: string;
+  country_code: string;
+  currency_code: string;
+}
+
+export async function getOrganisation(
+  db: Queryable,
+  organisationId: string,
+): Promise<OrganisationRow | undefined> {
+  return one<OrganisationRow>(
+    db,
+    `select id, name, slug, country_code, currency_code
+     from public.organisations where id = $1`,
+    [organisationId],
+  );
+}
+
 export async function slugIsAvailable(db: Queryable, slug: string): Promise<boolean> {
   const row = await one<{ exists: boolean }>(
     db,

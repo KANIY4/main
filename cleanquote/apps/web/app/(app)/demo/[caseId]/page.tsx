@@ -37,7 +37,8 @@ export default async function QuotePage({ params }: PageProps) {
     <div className="stack">
       <div>
         <p className="eyebrow">
-          <Link href="/">Quotes</Link> / {seedCase.input.contract.termMonths}-month term
+          <Link href="/demo">Demonstration cases</Link> / {seedCase.input.contract.termMonths}-month
+          term
         </p>
         <h1>{summary.title}</h1>
         <p className="muted" style={{ maxWidth: '70ch' }}>
