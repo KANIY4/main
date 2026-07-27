@@ -156,3 +156,82 @@ Every variable is optional and each absent one degrades to a documented local mo
 
 `STORAGE_PROVIDER=s3` with any of its three credentials missing fails at startup naming
 them, rather than on the first upload.
+
+## Deploying to Vercel
+
+The repository root hosts an unrelated project, so the CleanQuote app is not at
+the root of the repo. Vercel needs to be told that once:
+
+| Project setting          | Value                                     |
+| ------------------------ | ----------------------------------------- |
+| Root Directory           | `cleanquote`                              |
+| Framework preset         | Next.js (detected)                        |
+| Install / build / output | taken from `cleanquote/vercel.json`       |
+| Node version             | 20 or later (`engines` requires >= 20.11) |
+
+`vercel.json` builds through the workspace (`pnpm --filter @cleanquote/web run
+build`) because the app compiles its sibling packages from source via
+`transpilePackages`; there is no separate package build step to keep in sync.
+
+```bash
+vercel link --cwd cleanquote        # once, to create or attach the project
+vercel env pull --cwd cleanquote    # optional, to work against the same config
+vercel deploy --prod --cwd cleanquote
+```
+
+### Serverless changes four things
+
+A Vercel deployment is many short-lived instances rather than one long-lived
+process, and four parts of this application care:
+
+**Local storage cannot be used.** The local adapter writes to the instance
+filesystem. An upload would appear to succeed and the photo would be gone, or
+missing from the very next request because it was served by a different
+instance. `STORAGE_PROVIDER=s3` is required, with its endpoint and credentials.
+
+**The local email provider cannot be used.** It records messages instead of
+sending them, and `/dev/inbox` refuses to render in production because the
+bodies contain single-use tokens. Nobody could confirm an address, so nobody
+could sign in. `EMAIL_PROVIDER`, `EMAIL_API_URL` and `EMAIL_API_KEY` are
+required.
+
+**Rate limiting becomes per-instance.** `apps/web/lib/rate-limit.ts` holds a
+fixed window in memory. Across N instances a caller gets N times the allowance,
+which for the sign-in and public-proposal limits is the difference between a
+control and a decoration. This needs a shared counter before the deployment is
+exposed to the public internet.
+
+**Connections have to go through a pooler.** Each instance opens its own
+`node-postgres` pool. Point `DATABASE_URL` at a pooled endpoint — Supabase's
+pgBouncer port, Neon's pooled host — and set `DATABASE_POOL_MAX` low (2 is
+usually right for serverless). A direct connection string will exhaust the
+server's connection limit under any real traffic.
+
+The first two are checked at boot: a production deployment configured with the
+local adapters refuses to serve the signed-in application and names the
+variables it is missing, rather than presenting a product that half-works.
+`ALLOW_LOCAL_ADAPTERS_IN_PRODUCTION=true` overrides that, and is only sensible
+on a single machine you control — the end-to-end smoke run uses it.
+
+The public proposal at `/p/[token]` deliberately keeps working when that check
+fails: a client who already holds a link should not be told the supplier has a
+configuration problem.
+
+### Before the first deploy
+
+1. Provision PostgreSQL 16 and apply `supabase/migrations` in filename order.
+   Nothing applies them automatically.
+2. Confirm the role behind `DATABASE_URL` can `set role authenticated`, and that
+   a second role exists that bypasses RLS for `withSystem()` — on Supabase that
+   is `service_role`.
+3. Create a private storage bucket and add a policy restricting objects to the
+   caller's organisation prefix. See [STORAGE.md](STORAGE.md).
+4. Set `NEXT_PUBLIC_APP_URL` to the deployment's own URL. Proposal and
+   verification links are built from it; leaving it at localhost sends clients a
+   link to their own machine.
+
+### What is still missing for a public deployment
+
+Stated here rather than discovered later: distributed rate limiting, MFA, and a
+sweep for `files.retention_expires_at`. See the known gaps in
+[SECURITY.md](SECURITY.md).

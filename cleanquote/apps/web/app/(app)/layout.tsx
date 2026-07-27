@@ -1,6 +1,7 @@
 import { BrandHeader } from '@/components/brand-header';
 import { ServiceWorkerRegistration } from '@/components/service-worker';
 import { SiteNav } from '@/components/site-nav';
+import { assertDeploymentIsCoherent } from '@/lib/startup-checks';
 
 /**
  * The signed-in shell.
@@ -10,6 +11,12 @@ import { SiteNav } from '@/components/site-nav';
  * organisation switcher, or any other evidence of the tool that produced it.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  // Checked on the signed-in shell rather than at module load: a misconfigured
+  // production deployment should fail where somebody is looking at it, and the
+  // public proposal at /p/[token] should keep working for a client who already
+  // has a link even while the operator sorts the configuration out.
+  assertDeploymentIsCoherent();
+
   return (
     <>
       <BrandHeader>
