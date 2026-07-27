@@ -934,3 +934,59 @@ suite('MVP workflow — captured media', () => {
     expect(actions).toContain('quote.photo_deleted');
   });
 });
+
+suite('MVP workflow — reading the review queue', () => {
+  /**
+   * Filtering by status is what the workspace does on every page load, and it
+   * is a database-level cast: a value outside the enum fails at query time
+   * rather than returning nothing. Only a real database can catch that, which
+   * is why this assertion lives here.
+   */
+  it('lists only the suggestions still awaiting a decision', async () => {
+    const outstanding = await withUser(owner.userId, async (db) => {
+      const { aiStore } = await import('@cleanquote/database');
+      return aiStore.listSuggestions(db, quoteId, 'suggested');
+    });
+
+    expect(outstanding.every((suggestion) => suggestion.status === 'suggested')).toBe(true);
+  });
+
+  it('lists the suggestions a human has already confirmed', async () => {
+    const confirmed = await withUser(owner.userId, async (db) => {
+      const { aiStore } = await import('@cleanquote/database');
+      return aiStore.listSuggestions(db, quoteId, 'confirmed');
+    });
+
+    expect(confirmed.length).toBeGreaterThan(0);
+    expect(confirmed.every((suggestion) => suggestion.status === 'confirmed')).toBe(true);
+  });
+});
+
+suite('MVP workflow — what the client actually reads', () => {
+  it('names the organisation rather than a placeholder', async () => {
+    const content = await workflow.buildProposalContent({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      quoteId,
+      scenarioKey: 'balanced',
+    });
+
+    expect(content.organisationName).not.toBe('Our company');
+    expect(JSON.stringify(content)).not.toContain('Our company');
+  });
+
+  it('writes dates a person can read, not ISO timestamps', async () => {
+    const content = await workflow.buildProposalContent({
+      userId: owner.userId,
+      organisationId: owner.organisationId,
+      quoteId,
+      scenarioKey: 'balanced',
+    });
+
+    // A client reading "2026-08-26T07:18:45.955Z" is reading a bug.
+    expect(content.preparedOn).not.toMatch(/\d{4}-\d{2}-\d{2}T/);
+    expect(content.validUntil).toMatch(/^\d{1,2} \w+ \d{4}$/);
+    // The machine-readable form is kept separately, because expiry is computed.
+    expect(new Date(content.validUntilIso).getTime()).toBeGreaterThan(Date.now());
+  });
+});

@@ -32,9 +32,11 @@ function cookieOptions(expires: Date) {
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
-    // Secure is conditional so the cookie still works over plain HTTP in local
-    // development; in production it is always set.
-    secure: process.env.NODE_ENV === 'production',
+    // Secure by default. `COOKIE_SECURE=false` is the explicit opt-out for a
+    // local HTTP origin; keying this on NODE_ENV instead would silently drop
+    // the flag in any environment that happens to run a development build
+    // behind TLS.
+    secure: process.env['COOKIE_SECURE'] !== 'false',
     path: '/',
     expires,
   };
@@ -61,7 +63,7 @@ export async function setActiveOrganisation(organisationId: string): Promise<voi
   store.set(ORG_COOKIE, organisationId, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env['COOKIE_SECURE'] !== 'false',
     path: '/',
     maxAge: TOKEN_LIFETIMES.session,
   });

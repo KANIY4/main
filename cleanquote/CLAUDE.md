@@ -38,14 +38,25 @@ and the result still reports the guardrail as breached.
 
 ```
 packages/pricing-engine   the commercial core — pure, decimal-safe, versioned
+packages/workflow         orchestration; the ONLY caller of the pricing engine
+packages/database         data access + the tenancy seam (withUser / withSystem)
+packages/auth             scrypt passwords, opaque tokens, sessions
+packages/ai               extraction providers, question ranking
+packages/storage          tenant-prefixed keys, expiring links
+packages/pdf              small PDF writer, standard fonts, nothing embedded
+packages/email            transactional email; local provider by default
 packages/types            domain contracts; conventions documented at the top of pricing.ts
 packages/validation       Zod schemas for every boundary, including model output
 packages/seed-cases       five realistic quotes: seed data and regression corpus
 packages/config           typed env; serverEnv() throws in a browser bundle
-apps/web                  Next.js; server components, no client state yet
+apps/web                  Next.js; server components, four client components total
 supabase/migrations       forward-only, filename order
 supabase/test             executable security suite
 ```
+
+`apps/web` has exactly four client components: the form primitives, the photo uploader,
+the service worker registration. Everything else renders on the server. If a new one seems
+necessary, check first whether the state really has to live in the browser.
 
 ## Conventions
 
@@ -76,6 +87,24 @@ weekly x 4`.
 
 ## Status
 
-222 unit tests, 41 database security assertions. The engine, schema, validation and
-scenario-comparison UI are built. Authentication, capture, AI, proposals, mobile and
-billing are not — see `docs/ROADMAP.md`, which is kept honest.
+313 unit and integration tests, 41 database security assertions. The complete commercial
+workflow is built and walkable: register, onboard, configure rates, add a client and site,
+capture a walkthrough with photos, review AI suggestions, price three scenarios, approve,
+send a branded proposal, and have a client accept it.
+
+AR measurement, the native app, true offline capture, tender intelligence, e-signature,
+billing and analytics are not built — see `docs/ROADMAP.md`, which is kept honest.
+
+## More things that have already bitten
+
+- **A route group is how the client-facing proposal escapes the app chrome.** `/p/[token]`
+  sits outside `(app)`, so it inherits no navigation and none of this product's branding.
+  A client reading a quotation should see the cleaning company's name, not the tool's.
+- **Two dynamic segments cannot share a path.** The demonstration cases moved to
+  `/demo/[caseId]` when real quotes needed `/quotes/[quoteId]`.
+- **`server-only` throws under Vitest.** It is aliased to an empty module in
+  `vitest.config.ts`; the real package exists to fail a _build_, and there is no bundle in
+  a test run.
+- **Row types live on the store namespaces, not the barrel.** `quoteStore.QuoteRow`, not a
+  top-level export. An inferred return type crossing the package boundary needs an explicit
+  annotation or TypeScript emits TS2742.

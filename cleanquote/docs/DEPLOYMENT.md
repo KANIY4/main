@@ -109,3 +109,50 @@ resolving a different dependency tree than the author tested.
 - Error monitoring (`SENTRY_DSN` is read but nothing reports to it yet)
 - Mobile builds — the app does not exist
 - Backup verification and restore drills
+
+## Before this holds real money
+
+The application runs correctly on a single node. These are the things that change when it
+does not:
+
+**Rate limiting is per-process.** `apps/web/lib/rate-limit.ts` holds a fixed window per key
+in memory. Behind two nodes a caller gets twice the allowance. Replace the map with a
+shared counter — Redis, or a Postgres table if the traffic is modest enough that a row per
+window is cheaper than another service.
+
+**The local media signing secret is per-process when unset.** A link signed by one node
+will not verify on another. Set `STORAGE_URL_SIGNING_SECRET`, or move to hosted storage,
+which signs at the storage service instead.
+
+**Local storage is node-local.** `STORAGE_PROVIDER=local` writes to the filesystem. Two
+nodes do not share it. Hosted storage is not optional beyond one machine — see
+[STORAGE.md](STORAGE.md).
+
+**Email needs a provider.** The local provider records messages in `email_deliveries` and
+`/dev/inbox` renders them. That is deliberate for development and wrong in production: set
+`EMAIL_PROVIDER`, `EMAIL_API_URL` and `EMAIL_API_KEY`. `/dev/inbox` refuses to render once
+a real provider is configured or `NODE_ENV=production`, because the bodies contain
+single-use tokens.
+
+**`withSystem()` needs a role that bypasses RLS.** On Supabase that is `service_role`;
+elsewhere it is a role with `BYPASSRLS`. It is used for registration, organisation
+creation, invitation redemption and public proposal reads — all cases where the caller is
+by definition not yet a member of the thing they are touching.
+
+## Environment variables
+
+Every variable is optional and each absent one degrades to a documented local mode. See
+`.env.example`, which explains the activation steps for each group inline.
+
+| Group    | Variables                                                                                                                                                                                        | Absent                                                   |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| Branding | `NEXT_PUBLIC_APP_NAME`, `NEXT_PUBLIC_APP_URL`                                                                                                                                                    | Defaults; the product name is never hard-coded in source |
+| Database | `DATABASE_URL`, or the Supabase URL and keys                                                                                                                                                     | The app cannot serve the workspace; `/demo` still prices |
+| Model    | `AI_PROVIDER`, `ANTHROPIC_API_KEY`, `AI_MODEL_CAPABLE`, `AI_MONTHLY_BUDGET_PER_ORG`                                                                                                              | Deterministic mock provider, held to the same schema     |
+| Email    | `EMAIL_PROVIDER`, `EMAIL_API_URL`, `EMAIL_API_KEY`                                                                                                                                               | Local provider; messages readable at `/dev/inbox`        |
+| Storage  | `STORAGE_PROVIDER`, `STORAGE_ENDPOINT`, `STORAGE_BUCKET`, `STORAGE_REGION`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_SIGNED_URL_TTL_SECONDS`, `STORAGE_URL_SIGNING_SECRET` | Local adapter under `STORAGE_LOCAL_ROOT`                 |
+| Billing  | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                                                                                                                                                     | Not built; entitlements come from plan defaults          |
+| Errors   | `SENTRY_DSN`                                                                                                                                                                                     | Errors to stdout                                         |
+
+`STORAGE_PROVIDER=s3` with any of its three credentials missing fails at startup naming
+them, rather than on the first upload.

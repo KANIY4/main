@@ -8,7 +8,13 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { consumeRateLimit } from '../rate-limit';
-import { assertPermission, requestContext, requireActor, setActiveOrganisation } from '../session';
+import {
+  assertPermission,
+  currentSession,
+  requestContext,
+  requireActor,
+  setActiveOrganisation,
+} from '../session';
 
 /**
  * Workflow actions.
@@ -35,7 +41,7 @@ export async function completeOnboardingAction(
   _prev: ActionState,
   formData: FormData,
 ): Promise<ActionState> {
-  const session = await import('../session').then((m) => m.currentSession());
+  const session = await currentSession();
   if (!session) redirect('/sign-in');
 
   const path = String(formData.get('path') ?? 'quick_start') as 'quick_start' | 'advanced';
@@ -689,7 +695,10 @@ export async function declineProposalAction(
   const declined = await flow.declineProposalAsClient(
     token,
     reason || 'No reason given',
-    String(formData.get('signerName') ?? '') || null,
+    // Named differently from the acceptance form's field on purpose: two forms
+    // on one page sharing a name would give two elements the same id, and the
+    // second label would point at the first input.
+    String(formData.get('declinedByName') ?? '') || null,
   );
   if (!declined) return { error: 'This proposal can no longer be declined.' };
   revalidatePath(`/p/${token}`);

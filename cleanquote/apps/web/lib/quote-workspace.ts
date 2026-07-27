@@ -75,7 +75,10 @@ export async function loadQuoteWorkspace(
       const [settings, suggestions, activity, clients, site, proposals, photos] = await Promise.all(
         [
           tenancyStore.getSettings(db, actor.organisationId),
-          aiStore.listSuggestions(db, quoteId, 'pending'),
+          // 'suggested' is the enum's own name for "awaiting a human decision".
+          // There is no 'pending' member; passing one is a runtime cast error,
+          // not an empty result.
+          aiStore.listSuggestions(db, quoteId, 'suggested'),
           auditStore.listQuoteActivity(db, actor.organisationId, quoteId, 60),
           crmStore.listClients(db, actor.organisationId),
           workspace.quote.site_id

@@ -35,21 +35,10 @@ const nextConfig = {
             // reaching for a microphone or a location.
             value: 'camera=(self), microphone=(), geolocation=(), interest-cohort=()',
           },
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              // Next's runtime needs inline styles; scripts stay same-origin.
-              "script-src 'self'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob:",
-              "font-src 'self'",
-              "connect-src 'self' https://*.supabase.co",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
-          },
+          // The Content Security Policy is NOT set here. It needs a per-request
+          // nonce for Next's inline bootstrap scripts, so it lives in
+          // middleware.ts. A static policy here would either block hydration or
+          // require 'unsafe-inline', and both are worse.
         ],
       },
     ];

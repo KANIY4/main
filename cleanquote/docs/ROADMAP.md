@@ -13,27 +13,42 @@ An honest account of what exists, what does not, and the order the rest should b
 | Immutability of snapshots, audit and sent versions                                       | Tested at both the RLS and trigger layers                 |
 | Five demonstration cases                                                                 | 54 assertions; found two real engine defects              |
 | Web app: scenario comparison, cost transparency, guardrails, negotiation range           | Builds and runs; renders live-calculated figures          |
+| Registration, email confirmation, sessions, password reset                               | Integration-tested against real policies                  |
+| Invitations, seven roles, permission and cost/profit visibility separation               | Six isolation properties asserted end to end              |
+| Company onboarding with source and confirmation recorded per starter value               | Provenance wording asserted, including "not benchmarks"   |
+| Clients, sites, opportunities with timestamped stage events                              | Integration-tested                                        |
+| Quote workspace: fifteen tabs over one server-side read                                  | Builds; every panel reads the stored snapshot             |
+| Photo capture: browser compression, dedupe on retry, expiring links, audited deletion    | 18 storage unit tests + 9 integration tests               |
+| AI extraction, suggestion review queue, question ranking                                 | Nothing reaches a quote before a human confirms it        |
+| Approval bound to a calculation hash, invalidated by a database trigger                  | Asserted at the trigger layer                             |
+| Branded proposal: secure link, web view and generated PDF                                | 19 PDF tests; rendered in Chromium, not only asserted on  |
+| Client acceptance, decline and revision requests                                         | Acceptance moves quote and opportunity in one transaction |
+| Rate limiting on sign-in, reset, AI, uploads and the public proposal                     | Six unit tests; per-process, documented as such           |
 | CI: format, lint, types, tests, coverage, web build, database security, dependency audit | `.github/workflows/cleanquote-ci.yml`                     |
 
-**Total: 222 unit tests and 41 database security assertions passing.**
+**Total: 313 unit and integration tests, and 41 database security assertions, passing.**
 
 ## Not built
 
 Stated plainly. None of the following exists beyond types, schema or documented seams.
 
-- Authentication and sign-in
-- Organisation onboarding and the configuration wizard
-- Mobile capture app (Expo): camera, voice notes, observations, offline queue
-- AR measurement (RoomPlan, ARKit, ARCore) and its manual fallbacks
-- AI copilot: extraction, questioning, photo analysis
-- Tender document intelligence
-- Proposal generation and PDF output
-- Client portal and e-signature
-- Approval workflow UI
-- Stripe billing and entitlement enforcement
-- Analytics and actual-versus-quoted learning
-- Admin platform
-- Rate limiting
+- **AR measurement** (RoomPlan, ARKit, ARCore) and its manual fallbacks. Deliberately
+  deferred; areas are entered manually and marked estimated until measured.
+- **Native app** (Expo). The web app is installable and sized for a phone, which covers
+  capture; it is not a native app and does not claim to be.
+- **True offline capture.** The service worker caches the shell only. Queued uploads and
+  conflict resolution are unbuilt, and the offline page says so. This is the single
+  largest gap between what the product does and what a walkthrough in a basement needs.
+- **Tender document intelligence.** Reading an RFT and pre-filling a quote from it.
+- **E-signature.** Acceptance records a typed name, an IP and a timestamp. That is a
+  contemporaneous record, not a qualified electronic signature.
+- **Stripe billing and entitlement enforcement.**
+- **Analytics and actual-versus-quoted learning.**
+- **Admin platform.**
+- **Voice capture.** The capture screen takes typed notes; dictation is the phone's, not
+  the product's.
+- **MFA and a real breach-corpus password check.**
+- **Distributed rate limiting.** Per-process today; see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Build order
 

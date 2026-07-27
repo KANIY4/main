@@ -118,10 +118,23 @@ export async function createSuggestion(
   return row.id;
 }
 
+/**
+ * The enum's own members, so a typo becomes a compile error.
+ *
+ * A bare `string` here let `'pending'` reach the database, where it failed as a
+ * runtime cast and took the whole workspace page down with it.
+ */
+export type AiSuggestionStatus =
+  | 'suggested'
+  | 'confirmed'
+  | 'corrected'
+  | 'rejected'
+  | 'needs_review';
+
 export async function listSuggestions(
   db: Queryable,
   quoteId: string,
-  status?: string,
+  status?: AiSuggestionStatus,
 ): Promise<AiSuggestionRow[]> {
   const filter = status ? 'and status = $2::public.ai_suggestion_status' : '';
   const values = status ? [quoteId, status] : [quoteId];

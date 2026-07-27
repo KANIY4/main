@@ -1,5 +1,9 @@
 export const metadata = { title: 'No connection' };
 
+// Rendered per request so its scripts carry the nonce the CSP header expects.
+// See app/(auth)/layout.tsx.
+export const dynamic = 'force-dynamic';
+
 /**
  * Shown when a navigation fails with no signal.
  *

@@ -122,17 +122,62 @@ What it proves:
   engine before it parses. A confidence of 1.7, an invented compliance class, or an asset
   count asserted as a site total rather than a visible count all fail at the boundary.
 - **HTTP headers.** CSP, HSTS, `X-Content-Type-Options`, `X-Frame-Options`,
-  `Referrer-Policy` and a `Permissions-Policy` that denies camera, microphone and
-  geolocation to the web app are set in `next.config.mjs`.
+  `Referrer-Policy` and a `Permissions-Policy` are set in `next.config.mjs`. Camera is
+  allowed on this origin only, for walkthrough capture; microphone and geolocation are
+  denied outright.
+- **Passwords.** scrypt at N=16384, r=8, p=1 with a 64-byte key. The work factor is stored
+  in the hash string, so raising it later does not invalidate existing credentials —
+  `needsRehash()` upgrades them on the next successful sign-in. Verification is
+  constant-time and returns false on a malformed hash rather than throwing.
+- **Tokens.** Sessions, invitations, email verification, password reset and proposal links
+  are all 32 random bytes, base64url. Only the SHA-256 hash is stored. A database leak
+  therefore yields no usable link, and the application itself cannot recover a proposal
+  URL after issuing it — reissuing is the recovery path.
+- **Sessions.** httpOnly, `SameSite=Lax`, `Secure` in production, with a sliding expiry
+  once past halfway so an active user is not signed out mid-walkthrough while an abandoned
+  session still ages out.
+- **Account enumeration.** Sign-in hashes a dummy password when the address is unknown, so
+  timing does not distinguish the two cases, and wrong-password and unknown-address return
+  the same message. Password reset returns the same answer either way — including when the
+  rate limit refuses it, because a limiter that says "slow down" to a stranger and "if that
+  address has an account" to everyone else has just become an oracle.
+- **Rate limiting.** Sign-in (per address _and_ per caller), password reset, AI extraction
+  (per organisation — the model budget is the company's), uploads, proposal views and
+  proposal decisions. Per-process, which is honest about its limits: behind more than one
+  node it needs a shared counter. See [DEPLOYMENT.md](DEPLOYMENT.md).
+- **Audit integrity.** Audit rows are written through `public.record_audit`, a SECURITY
+  DEFINER function that stamps `auth.uid()` itself and refuses to write against an
+  organisation the caller is not a member of. Opening an INSERT policy on `audit_logs`
+  would have let a caller forge an actor; writing them in a separate privileged
+  transaction would have lost atomicity with the change they describe. This does neither.
+- **Media.** Keys are built, never accepted, and always begin with the organisation id —
+  enforced independently by the key builder, a check constraint and the local adapter's
+  containment check. Links are signed and expiring on every adapter, and the serving route
+  additionally requires the key's organisation prefix to match the caller's active
+  organisation, so a forwarded link cannot be replayed cross-tenant inside its window.
+  Uploads are checked against a MIME allowlist _and_ the file's magic number.
+- **The client proposal exposes no internal data.** `buildProposalContent` never reads
+  margin, cost, contingency, strategy name, approval threshold or negotiation floor onto
+  the object it returns, so there is nothing for a template bug to leak. An integration
+  test asserts the absence of each of those terms in the serialised document.
 
 ## Known gaps
 
 Stated plainly rather than implied by omission:
 
-- **Rate limiting is not implemented.** Public and AI endpoints need it before either is
-  exposed. Tracked in the roadmap.
-- **Authentication is not wired up.** The schema, policies and helpers are complete and
-  tested; the sign-in flow and session handling are not built.
+- **Rate limiting is per-process.** It is enough to stop one caller hammering an endpoint
+  and not enough to coordinate across replicas. Behind more than one node it needs a
+  shared counter (Redis, or Postgres if the traffic is modest).
+- **The local media signing secret is generated per process when unset.** Correct for a
+  single node, wrong across replicas. Set `STORAGE_URL_SIGNING_SECRET` explicitly, or run
+  the hosted storage adapter.
+- **There is no MFA and no password-breach check beyond a short embedded list.** Both are
+  worth having before this holds anyone's real pricing.
+- **`files.retention_expires_at` is not enforced by any job.** The column exists; nothing
+  sweeps it yet.
+- **Session revocation is per-session, not per-user.** Suspending a member cuts off access
+  on their next request because membership is re-checked every time, but their other
+  sessions are not explicitly torn down.
 - **Penetration testing has not been performed.** The security tests prove the properties
   they assert; they are not a substitute for an adversarial review.
 - **The compliance features identify, document and price regulatory requirements. They do

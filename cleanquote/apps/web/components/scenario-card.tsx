@@ -26,7 +26,10 @@ export function ScenarioCard({
     <article
       className={`scenario scenario-${scenario.key}${isRecommended ? ' is-recommended' : ''}`}
     >
-      {isRecommended && <span className="recommended-flag">Recommended</span>}
+      {/* Scenario labels are organisation configuration and the default for
+          the balanced strategy is literally "Recommended", so the flag would
+          read twice on the same card. Say who is recommending it instead. */}
+      {isRecommended && <span className="recommended-flag">Our recommendation</span>}
       <p className="eyebrow" style={{ marginBottom: 0 }}>
         {scenario.label}
       </p>

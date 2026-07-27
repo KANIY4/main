@@ -1,5 +1,9 @@
 # Testing
 
+**313 unit and integration tests, 41 database security assertions.** `pnpm run verify`
+runs format, lint, types and tests; `./supabase/test/run-db-tests.sh` runs the security
+suite against a real PostgreSQL.
+
 ```bash
 pnpm run verify                  # format, lint, typecheck, unit tests
 pnpm run test:coverage           # with thresholds
@@ -83,3 +87,51 @@ Mirror the source layout: `packages/<pkg>/test/<module>.test.ts`, shared fixture
 `test/helpers/`. Prefer `it.each` over copy-paste. If a bug is found, add the regression
 test at the layer where the defect lived — both engine fixes in this codebase carry direct
 unit tests, not only the seed-case assertions that surfaced them.
+
+## The integration suite
+
+`packages/workflow/test/mvp-workflow.test.ts` boots a throwaway PostgreSQL cluster, applies
+every migration in order, and walks the whole commercial workflow through the same
+functions the web application calls. A passing run is evidence about shipped code rather
+than about a harness. It skips itself, loudly, when no PostgreSQL binary is present.
+
+What it proves, beyond the happy path:
+
+| Property                                                               | Why it is tested here rather than in a unit test          |
+| ---------------------------------------------------------------------- | --------------------------------------------------------- |
+| An unauthenticated caller sees no tenant data                          | Only a real policy can demonstrate this                   |
+| A member of one organisation cannot see another's, in both directions  | Isolation has to hold symmetrically                       |
+| A read-only user cannot edit a quote                                   | The refusal comes from the database, not the UI           |
+| An estimator cannot override a protected margin                        | Permission separation, at the layer that enforces it      |
+| An owner can invite; the invitation is refused for a different account | Token binding                                             |
+| A suspended member loses access immediately                            | Membership is re-checked per request                      |
+| AI extraction touches nothing until confirmed                          | The central product claim                                 |
+| A confirmed AI area still reads `estimated`                            | The distinction survives confirmation                     |
+| Recalculating invalidates an approval                                  | Trigger behaviour, not application behaviour              |
+| A proposal document contains no internal figure                        | Asserted by absence of each term in the serialised output |
+| A proposal token is stored hashed, and guesses resolve to nothing      | The link is the whole authorisation                       |
+| Acceptance moves quote and opportunity together                        | One transaction, or the pipeline misreports               |
+| A photo is isolated by organisation and its deletion is audited        | Media carries the same tenancy rules as everything else   |
+
+## Coverage
+
+Thresholds: 80% lines, 75% branches, 80% functions, 80% statements. Current: **91.0%
+lines, 86.9% branches**.
+
+`packages/database`, `packages/workflow`, `packages/email` and `auth/src/service.ts` are
+excluded from the coverage report and covered by the integration suite instead. Counting
+them twice would report a number that flatters the unit tests; excluding them without
+saying so would hide what covers them. They are covered — by a suite that runs real SQL
+against real policies, which is the only way those files can be meaningfully tested.
+
+## What is not tested
+
+- **No browser test exists.** Every screen has been type-checked and built; none has been
+  driven by a headless browser. The forms, the tab navigation and the upload retry path are
+  unproven in a real browser.
+- **The S3 storage adapter is untested against a live endpoint.** Its SigV4 signing is
+  hand-written and exercised only by the local adapter's shared interface.
+- **The Anthropic provider is untested against the live API.** The mock provider is held to
+  the same schema, which proves the contract but not the prompt.
+- **No load or soak testing.** The rate limiter's behaviour under real concurrency is
+  unmeasured.

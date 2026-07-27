@@ -22,6 +22,17 @@ import { approvalTriggersFor } from './pricing';
 // Approval
 // ---------------------------------------------------------------------------
 
+/**
+ * A date as a person reads it.
+ *
+ * Fixed to en-GB rather than the server's locale: a proposal must not say
+ * 07/08 in Sydney and 08/07 in London, and "26 August 2026" cannot be
+ * misread either way.
+ */
+function formatDate(value: Date): string {
+  return value.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export interface SubmitApprovalInput {
   readonly userId: string;
   readonly organisationId: string;
@@ -185,8 +196,11 @@ export interface ProposalContent {
   readonly clientName: string;
   readonly siteName: string | null;
   readonly reference: string;
+  /** Human-readable, because a client reads this. */
   readonly preparedOn: string;
   readonly validUntil: string;
+  /** ISO, for anything that needs to compute with the date rather than show it. */
+  readonly validUntilIso: string;
   readonly brandColour: string | null;
   readonly sections: readonly ProposalSection[];
   /** The one price the client sees. Never a scenario name, never a cost. */
@@ -245,7 +259,11 @@ export async function buildProposalContent(input: {
     const clients = await crmStore.listClients(db, input.organisationId);
     const client = clients.find((c) => c.id === quote.client_id);
 
-    const organisationName = settings?.brand_name ?? 'Our company';
+    // The trading name, then the registered name, and only then a placeholder.
+    // A proposal that says "Our company" in the body while the header carries
+    // the real name reads like a template somebody forgot to fill in.
+    const organisation = await tenancyStore.getOrganisation(db, input.organisationId);
+    const organisationName = settings?.brand_name ?? organisation?.name ?? 'Our company';
     const included = new Set(input.includeSections ?? DEFAULT_SECTION_ORDER);
     const validUntil = new Date(Date.now() + quote.quote_validity_days * 86_400_000);
 
@@ -279,8 +297,9 @@ export async function buildProposalContent(input: {
       clientName: client?.name ?? 'Client',
       siteName: site?.name ?? null,
       reference: quote.reference,
-      preparedOn: new Date().toISOString(),
-      validUntil: validUntil.toISOString(),
+      preparedOn: formatDate(new Date()),
+      validUntil: formatDate(validUntil),
+      validUntilIso: validUntil.toISOString(),
       brandColour: settings?.primary_colour ?? null,
       sections,
       investment: {
@@ -527,7 +546,7 @@ export async function sendProposal(input: {
       renderedContent: content,
       publicTokenHash: token.hash,
       publicTokenExpiresAt: expiryFromNow(TOKEN_LIFETIMES.proposalLink),
-      expiresAt: new Date(content.validUntil),
+      expiresAt: new Date(content.validUntilIso),
       sentToEmail: input.toEmail,
       createdByUserId: input.userId,
     });
@@ -563,7 +582,7 @@ export async function sendProposal(input: {
       kind: 'proposal_sent',
       to: input.toEmail,
       subject: `Your proposal from ${content.organisationName}`,
-      body: `${content.organisationName} has prepared a proposal for ${content.clientName}.\n\nView and accept it here:\n${publicUrl}\n\nThis link is valid until ${new Date(content.validUntil).toDateString()}.`,
+      body: `${content.organisationName} has prepared a proposal for ${content.clientName}.\n\nView and accept it here:\n${publicUrl}\n\nThis link is valid until ${content.validUntil}.`,
       organisationId: input.organisationId,
       relatedEntityType: 'proposal',
       relatedEntityId: proposalId,

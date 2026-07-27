@@ -22,6 +22,11 @@ export const metadata = { title: 'Your proposal', robots: { index: false, follow
  * is built without ever reading cost, margin, contingency, strategy name or
  * negotiation floor. There is no internal figure here to accidentally reveal.
  */
+/** Matches the wording the proposal itself uses; never the server's locale. */
+function readableDate(value: Date): string {
+  return value.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export default async function PublicProposalPage({
   params,
 }: {
@@ -112,10 +117,13 @@ export default async function PublicProposalPage({
       ))}
 
       {decided ? (
-        <div className="banner banner-info">
+        // role=status because this replaces the form the visitor just
+        // submitted: a screen reader user needs to be told the outcome, not
+        // left wondering whether the button did anything.
+        <div className="banner banner-info" role="status">
           {proposal.acceptedAt
-            ? `Accepted on ${proposal.acceptedAt.toLocaleDateString()}. Thank you — we will be in touch to arrange the start.`
-            : `Declined on ${proposal.declinedAt?.toLocaleDateString()}. Thank you for letting us know.`}
+            ? `Accepted on ${readableDate(proposal.acceptedAt)}. Thank you — we will be in touch to arrange the start.`
+            : `Declined on ${proposal.declinedAt ? readableDate(proposal.declinedAt) : 'a previous date'}. Thank you for letting us know.`}
         </div>
       ) : (
         <>
@@ -160,7 +168,7 @@ export default async function PublicProposalPage({
                 pendingLabel="Recording…"
               >
                 <input type="hidden" name="token" value={token} />
-                <Field label="Your name" name="signerName" />
+                <Field label="Your name" name="declinedByName" />
                 <TextArea
                   label="Anything you would like us to know?"
                   name="reason"

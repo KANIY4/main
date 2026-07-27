@@ -26,6 +26,18 @@ export async function SiteNav() {
     );
   }
 
+  // Signed in but not yet in an organisation: the workspace links would all
+  // bounce back to onboarding, so the only thing offered is a way out.
+  if (session.memberships.length === 0) {
+    return (
+      <form action={signOutAction}>
+        <button type="submit" className="button button-quiet">
+          Sign out
+        </button>
+      </form>
+    );
+  }
+
   return (
     <>
       <Link className="nav-link" href="/dashboard">
