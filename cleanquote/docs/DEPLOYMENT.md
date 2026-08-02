@@ -217,6 +217,20 @@ The public proposal at `/p/[token]` deliberately keeps working when that check
 fails: a client who already holds a link should not be told the supplier has a
 configuration problem.
 
+### What a deployment with nothing configured still does
+
+A first deploy is useful before the database, mail and storage exist. These
+routes need no configuration at all and are outside the guarded group:
+
+| Route                        | What it does                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `/demo` and `/demo/[caseId]` | Five worked pricing cases, priced live by the real engine from fixtures. Labelled as examples, not anybody's data. |
+| `/sign-in`, `/register`      | Render. Submitting needs the database.                                                                             |
+| `/`                          | Redirects to sign-in, or to the workspace once there is a session.                                                 |
+
+`/dashboard` and everything behind it refuses, naming what is missing. That is
+the intended first state of a deployment, not a broken one.
+
 ### Before the first deploy
 
 1. Provision PostgreSQL 16 and apply `supabase/migrations` in filename order.
