@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Meridian Sample</string>
+    <string name="tagline">Sample APK built from source in CI</string>
+    <string name="tap_button">Tap me</string>
+    <string name="tap_count_zero">No taps yet</string>
+</resources>
