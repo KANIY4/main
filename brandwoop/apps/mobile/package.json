@@ -1,0 +1,27 @@
+{
+  "name": "@brandwoop/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "doctor": "expo-doctor",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@brandwoop/contracts": "workspace:*",
+    "expo": "57.0.11",
+    "expo-constants": "18.0.9",
+    "expo-status-bar": "3.0.9",
+    "react": "19.2.0",
+    "react-native": "0.83.1"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.10"
+  }
+}

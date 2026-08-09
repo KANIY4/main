@@ -1,0 +1,92 @@
+name: Release web and API
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+concurrency:
+  group: release-web
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    # The production environment carries a required reviewer, so the migration
+    # waits for a named approver before it touches production data.
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Apply forward migrations
+        env:
+          # Migration identity is separate from the runtime identity.
+          DATABASE_URL: ${{ secrets.MIGRATION_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          for file in packages/database/migrations/*.sql; do
+            echo "Applying $file"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$file"
+          done
+
+      - name: Record applied version
+        run: echo "migrations_applied=$(ls packages/database/migrations | tail -1)" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: migrate
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Promote the Vercel production deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          npx --yes vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest build --prod --token "$VERCEL_TOKEN"
+          npx --yes vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN" \
+            | tee deployment-url.txt
+
+      # A deployment that answers /api/v1/ready with a degraded dependency is
+      # rolled back rather than left serving traffic.
+      - name: Health check
+        run: |
+          set -euo pipefail
+          url="$(tail -1 deployment-url.txt)"
+          for attempt in 1 2 3 4 5; do
+            if curl -fsS "$url/api/v1/ready" > ready.json; then
+              cat ready.json
+              exit 0
+            fi
+            echo "Readiness attempt $attempt failed; retrying"
+            sleep 10
+          done
+          echo "Readiness check failed after 5 attempts"
+          exit 1
+
+      - name: Roll back on failure
+        if: failure()
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: npx --yes vercel@latest rollback --token "$VERCEL_TOKEN" --yes
+
+      - name: Write release record
+        run: |
+          {
+            echo "## Web release"
+            echo "- commit: ${{ github.sha }}"
+            echo "- deployment: $(tail -1 deployment-url.txt)"
+            echo "- region: syd1"
+          } >> "$GITHUB_STEP_SUMMARY"

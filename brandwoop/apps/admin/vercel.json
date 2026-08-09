@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["syd1"],
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/v1/jobs/detect-missed-shifts",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/v1/jobs/process-outbox",
+      "schedule": "*/5 * * * *"
+    }
+  ]
+}

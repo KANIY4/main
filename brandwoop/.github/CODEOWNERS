@@ -1,0 +1,22 @@
+# Ownership drives required review. Security-sensitive areas need a reviewer
+# from the security owners group in addition to the default reviewer.
+#
+# Replace the placeholder handles once BrandWoop confirms the GitHub
+# organisation and team names (decision D-01).
+
+*                               @brandwoop/developers
+
+# Tenancy, permissions and data policy
+/packages/auth/                 @brandwoop/developers @brandwoop/security
+/packages/database/migrations/  @brandwoop/developers @brandwoop/security
+/packages/database/tests/       @brandwoop/developers @brandwoop/security
+
+# Release and supply chain
+/.github/workflows/             @brandwoop/developers @brandwoop/security
+/apps/mobile/eas.json           @brandwoop/developers @brandwoop/security
+/apps/admin/next.config.mjs     @brandwoop/developers @brandwoop/security
+/apps/admin/vercel.json         @brandwoop/developers @brandwoop/security
+
+# Agent guardrails
+/.claude/                       @brandwoop/developers @brandwoop/security
+/CLAUDE.md                      @brandwoop/developers

@@ -1,0 +1,88 @@
+name: PR validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Third-party actions are pinned to full commit SHAs (scope section 11.3).
+# Update them through the repository approval register, never by tag.
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          version: 10.33.0
+
+      - name: Set up Node
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      # A lockfile that does not match package.json means an unreviewed
+      # dependency change; the install fails rather than resolving a new tree.
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit and contract tests
+        run: pnpm test
+
+      - name: Migration lint
+        run: pnpm --filter @brandwoop/database run migrate:check
+
+  rls-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: brandwoop_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for file in packages/database/migrations/*.sql; do
+            echo "Applying $file"
+            psql -h localhost -U postgres -d brandwoop_test -v ON_ERROR_STOP=1 -f "$file"
+          done
+
+      # Scope section 2 requires a 100% pass rate on cross-tenant negative tests.
+      - name: Cross-tenant negative tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d brandwoop_test -v ON_ERROR_STOP=1 \
+            -f packages/database/tests/rls-negative.sql

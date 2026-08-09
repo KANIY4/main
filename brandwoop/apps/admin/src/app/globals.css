@@ -1,0 +1,63 @@
+:root {
+  --colour-surface: #ffffff;
+  --colour-text: #14181f;
+  --colour-muted: #4a5364;
+  --colour-accent: #12507a;
+  --focus-ring: 3px solid #12507a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --colour-surface: #10141a;
+    --colour-text: #f2f5f9;
+    --colour-muted: #a8b2c1;
+    --colour-accent: #7ab8e6;
+    --focus-ring: 3px solid #7ab8e6;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--colour-surface);
+  color: var(--colour-text);
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  line-height: 1.5;
+}
+
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2rem 1.25rem;
+}
+
+/* Visible focus is required at WCAG 2.2 AA and is easy to lose to a reset. */
+:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--colour-surface);
+  z-index: 10;
+}
+
+.muted {
+  color: var(--colour-muted);
+}

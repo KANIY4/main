@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.next/
+.turbo/
+.expo/
+coverage/
+*.tsbuildinfo
+
+# Secrets and credentials never enter version control.
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
