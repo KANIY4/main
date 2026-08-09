@@ -1,4 +1,4 @@
-import type { auditItemDefinitionSchema, auditItemResultSchema } from "../quality.js";
+import type { auditItemDefinitionSchema, auditItemResultSchema } from "../quality";
 import type { z } from "zod";
 
 type ItemDefinition = z.infer<typeof auditItemDefinitionSchema>;

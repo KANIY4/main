@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { idempotencyKey, isoDateTime, uuid } from "./common.js";
+import { idempotencyKey, isoDateTime, uuid } from "./common";
 
 /**
  * Outbox events are written inside the same transaction as the business record

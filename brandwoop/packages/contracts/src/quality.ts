@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isoDateTime, longText, shortText, uuid } from "./common.js";
+import { isoDateTime, longText, shortText, uuid } from "./common";
 
 export const auditItemDefinitionSchema = z.object({
   id: uuid,

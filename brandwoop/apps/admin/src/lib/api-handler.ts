@@ -8,8 +8,8 @@ import {
   successEnvelope,
   type ApiErrorCode,
   type ResponseMeta,
-} from "./api-response.js";
-import { log } from "./logger.js";
+} from "./api-response";
+import { log } from "./logger";
 
 export class ApiError extends Error {
   readonly code: ApiErrorCode;

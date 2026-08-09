@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { RecurrenceError, expandRecurrence } from "../rules/recurrence.js";
-import { localWallTimeToUtc, zoneOffsetMinutes } from "../rules/timezone.js";
-import type { RecurrenceRule } from "../scheduling.js";
+import { RecurrenceError, expandRecurrence } from "../rules/recurrence";
+import { localWallTimeToUtc, zoneOffsetMinutes } from "../rules/timezone";
+import type { RecurrenceRule } from "../scheduling";
 
 const TEMPLATE_ID = "33333333-3333-4333-8333-333333333333";
 const SYDNEY = "Australia/Sydney";

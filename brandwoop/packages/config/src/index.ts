@@ -8,5 +8,5 @@ export {
   type ServerEnv,
   type PublicEnv,
   type MobileEnv,
-} from "./env.js";
-export { DEPLOYMENT_REGION, SUPPORTED_LOCALES, DEFAULT_TIMEZONE } from "./constants.js";
+} from "./env";
+export { DEPLOYMENT_REGION, SUPPORTED_LOCALES, DEFAULT_TIMEZONE } from "./constants";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { recordAttendanceRequestSchema } from "../attendance.js";
-import { MAX_EVIDENCE_BYTES, requestUploadSlotSchema } from "../evidence.js";
-import { companyCodeSchema, inviteUserRequestSchema } from "../tenant.js";
-import { geofenceRadiusMetres, paginationQuerySchema } from "../common.js";
-import { exportRequestSchema } from "../reporting.js";
+import { recordAttendanceRequestSchema } from "../attendance";
+import { MAX_EVIDENCE_BYTES, requestUploadSlotSchema } from "../evidence";
+import { companyCodeSchema, inviteUserRequestSchema } from "../tenant";
+import { geofenceRadiusMetres, paginationQuerySchema } from "../common";
+import { exportRequestSchema } from "../reporting";
 
 const TENANT_ID = "11111111-1111-4111-8111-111111111111";
 const SHIFT_ID = "22222222-2222-4222-8222-222222222222";

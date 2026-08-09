@@ -1,6 +1,6 @@
 import type { Role } from "@brandwoop/contracts";
 
-import type { AuthContext, SupportGrant } from "../context.js";
+import type { AuthContext, SupportGrant } from "../context";
 
 export const TENANT_A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 export const TENANT_B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";

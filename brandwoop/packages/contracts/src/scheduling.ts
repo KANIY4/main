@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isoDate, isoDateTime, longText, shortText, uuid } from "./common.js";
+import { isoDate, isoDateTime, longText, shortText, uuid } from "./common";
 
 export const shiftStatusSchema = z.enum([
   "draft",

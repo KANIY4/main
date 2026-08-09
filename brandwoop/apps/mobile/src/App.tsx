@@ -1,7 +1,7 @@
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 
-import { apiBaseUrl, appEnv } from "./config.js";
+import { apiBaseUrl, appEnv } from "./config";
 
 /**
  * Foundation shell. Role-aware navigation, authentication and the shift

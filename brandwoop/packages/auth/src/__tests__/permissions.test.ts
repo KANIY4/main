@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthorizationError, assertCan, authorize, can } from "../permissions.js";
+import { AuthorizationError, assertCan, authorize, can } from "../permissions";
 import {
   NOW,
   SITE_1,
@@ -10,7 +10,7 @@ import {
   USER_OTHER,
   USER_SELF,
   contextFor,
-} from "./helpers.js";
+} from "./helpers";
 
 const options = { nowEpochMs: NOW };
 

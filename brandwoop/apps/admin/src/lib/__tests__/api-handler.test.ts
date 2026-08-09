@@ -2,8 +2,8 @@ import { AuthorizationError, anonymousContext, type AuthContext } from "@brandwo
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
-import { ApiError, createApiHandler } from "../api-handler.js";
-import { redact } from "../logger.js";
+import { ApiError, createApiHandler } from "../api-handler";
+import { redact } from "../logger";
 
 const activeContext: AuthContext = {
   userId: "99999999-9999-4999-8999-999999999999",

@@ -3,13 +3,13 @@ import {
   SUPPORT_READABLE_CAPABILITIES,
   type Capability,
   type Grant,
-} from "./capabilities.js";
+} from "./capabilities";
 import {
   hasValidSupportGrant,
   isActiveMember,
   type AuthContext,
   type ResourceRef,
-} from "./context.js";
+} from "./context";
 
 export type DenyReason =
   | "not_authenticated"

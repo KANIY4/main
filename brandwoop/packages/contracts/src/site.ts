@@ -10,7 +10,7 @@ import {
   shortText,
   timezone,
   uuid,
-} from "./common.js";
+} from "./common";
 
 export const siteStatusSchema = z.enum(["draft", "active", "inactive"]);
 

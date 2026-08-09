@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { distanceMetres, evaluateGeofence } from "../rules/geofence.js";
-import type { LocationSample } from "../attendance.js";
+import { distanceMetres, evaluateGeofence } from "../rules/geofence";
+import type { LocationSample } from "../attendance";
 
 const site = {
   latitude: -33.8688,

@@ -1,5 +1,5 @@
-import type { RecurrenceRule } from "../scheduling.js";
-import { addDays, isoWeekday, localWallTimeToUtc } from "./timezone.js";
+import type { RecurrenceRule } from "../scheduling";
+import { addDays, isoWeekday, localWallTimeToUtc } from "./timezone";
 
 export interface ShiftOccurrence {
   /** Stable per template and local start. Re-expanding cannot duplicate a shift. */

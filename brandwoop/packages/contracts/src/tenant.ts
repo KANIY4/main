@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isoDateTime, longText, shortText, timezone, uuid } from "./common.js";
+import { isoDateTime, longText, shortText, timezone, uuid } from "./common";
 
 /**
  * A company code assists onboarding and discovery. It never grants access on

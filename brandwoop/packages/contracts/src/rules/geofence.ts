@@ -1,4 +1,4 @@
-import type { GeofenceOutcome, LocationSample } from "../attendance.js";
+import type { GeofenceOutcome, LocationSample } from "../attendance";
 
 const EARTH_RADIUS_METRES = 6_371_008.8;
 

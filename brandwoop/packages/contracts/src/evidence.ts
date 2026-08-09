@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { idempotencyKey, isoDateTime, longText, shortText, uuid } from "./common.js";
+import { idempotencyKey, isoDateTime, longText, shortText, uuid } from "./common";
 
 export const photoCategorySchema = z.enum(["before", "after", "general", "issue", "audit"]);
 

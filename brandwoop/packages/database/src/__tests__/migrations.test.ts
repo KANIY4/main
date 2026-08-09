@@ -6,7 +6,7 @@ import {
   loadMigrations,
   rlsEnabledTables,
   tenantScopedTables,
-} from "../migrations.js";
+} from "../migrations";
 
 const migrations = loadMigrations();
 

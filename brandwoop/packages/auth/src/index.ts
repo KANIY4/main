@@ -4,7 +4,7 @@ export {
   SUPPORT_READABLE_CAPABILITIES,
   type Capability,
   type Grant,
-} from "./capabilities.js";
+} from "./capabilities";
 export {
   anonymousContext,
   hasValidSupportGrant,
@@ -12,7 +12,7 @@ export {
   type AuthContext,
   type ResourceRef,
   type SupportGrant,
-} from "./context.js";
+} from "./context";
 export {
   assertCan,
   authorize,
@@ -20,4 +20,4 @@ export {
   AuthorizationError,
   type Decision,
   type DenyReason,
-} from "./permissions.js";
+} from "./permissions";

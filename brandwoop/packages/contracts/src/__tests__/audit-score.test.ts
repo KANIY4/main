@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AuditScoringError, scoreAudit } from "../rules/audit-score.js";
+import { AuditScoringError, scoreAudit } from "../rules/audit-score";
 
 const CRITICAL_ITEM = "aaaaaaaa-1111-4111-8111-111111111111";
 const ROUTINE_ITEM = "bbbbbbbb-2222-4222-8222-222222222222";

@@ -1,2 +1,2 @@
-export { colours, spacing, typography, touchTarget } from "./tokens.js";
-export type { ColourToken } from "./tokens.js";
+export { colours, spacing, typography, touchTarget } from "./tokens";
+export type { ColourToken } from "./tokens";

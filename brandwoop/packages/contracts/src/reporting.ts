@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { isoDateTime, shortText, uuid } from "./common.js";
+import { isoDateTime, shortText, uuid } from "./common";
 
 export const reportTypeSchema = z.enum([
   "shift_service",

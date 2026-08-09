@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { CAPABILITIES, type Capability } from "../capabilities.js";
-import { authorize, can } from "../permissions.js";
-import { NOW, SITE_1, TENANT_A, TENANT_B, USER_SELF, contextFor } from "./helpers.js";
+import { CAPABILITIES, type Capability } from "../capabilities";
+import { authorize, can } from "../permissions";
+import { NOW, SITE_1, TENANT_A, TENANT_B, USER_SELF, contextFor } from "./helpers";
 
 const options = { nowEpochMs: NOW };
 

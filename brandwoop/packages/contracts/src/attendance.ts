@@ -8,7 +8,7 @@ import {
   longitude,
   shortText,
   uuid,
-} from "./common.js";
+} from "./common";
 
 export const attendanceEventTypeSchema = z.enum([
   "sign_in",

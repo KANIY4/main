@@ -7,4 +7,4 @@ export {
   tenantScopedTables,
   MigrationLayoutError,
   type MigrationFile,
-} from "./migrations.js";
+} from "./migrations";

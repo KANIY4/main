@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["syd1"],
   "framework": "nextjs",
+  "installCommand": "pnpm install --frozen-lockfile --filter \"@brandwoop/admin...\"",
   "crons": [
     {
       "path": "/api/v1/jobs/detect-missed-shifts",

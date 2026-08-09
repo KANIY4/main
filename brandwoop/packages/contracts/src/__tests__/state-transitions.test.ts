@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { canTransitionShift, shiftStatusSchema, type ShiftStatus } from "../scheduling.js";
-import { canTransitionIssue, issueStatusSchema, type IssueStatus } from "../quality.js";
+import { canTransitionShift, shiftStatusSchema, type ShiftStatus } from "../scheduling";
+import { canTransitionIssue, issueStatusSchema, type IssueStatus } from "../quality";
 
 const allShiftStatuses = shiftStatusSchema.options as readonly ShiftStatus[];
 const allIssueStatuses = issueStatusSchema.options as readonly IssueStatus[];
