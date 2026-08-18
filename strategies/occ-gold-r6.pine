@@ -1,0 +1,432 @@
+//@version=6
+
+// =============================================================================
+// OCC Gold Engine - Open/Close Cross, R6 (non-repainting rebuild)
+//
+// Lineage
+//   R1-R2  @JayRogers    original Open/Close Cross strategy
+//   R3-R5  @JustUncleL   alternate resolution, MA variants, bar limiter
+//   R6     this file     non-repainting rebuild, tuned for gold (XAUUSD / MGC)
+//
+// Why this rewrite exists
+// -----------------------------------------------------------------------------
+// 1. R5.1 requested its higher timeframe series with barmerge.lookahead_on.
+//    On historical bars that hands every chart bar the FINAL value of a higher
+//    timeframe bar that has not closed yet. That is future data, not a drawing
+//    artifact, and it is the main reason the published backtest looked strong
+//    while the author warned that "non-repainting mode" collapsed performance.
+//    R6 always uses lookahead_off and, by default, consumes only the previous
+//    fully closed higher timeframe bar. Signals never change after the fact.
+//
+// 2. R5.1's "Delay Open/Close MA" input shifted the SOURCE (close[n]) rather
+//    than the security call, so it lagged the signal without removing the leak.
+//    That input is gone. Confirmation is handled where it belongs.
+//
+// 3. The raw signal is a zero-cross of MA(close) - MA(open), which equals the
+//    smoothed average candle body. Near zero it whipsaws constantly. R6 divides
+//    that spread by ATR to get a dimensionless trend strength, then requires the
+//    strength to clear a band before entering and to fall back inside a smaller
+//    band before going flat. Same idea the original plotted as a coloured fill,
+//    now used as the actual decision rule.
+//
+// 4. Fixed "points" stops are replaced by ATR-multiple stops, an optional
+//    partial take profit at an R multiple, and an optional chandelier trail.
+//    Position size is derived from risk per trade and the stop distance, then
+//    clamped to the lot / contract limits the account actually allows.
+//
+// 5. The strategy is allowed to stand flat. It is no longer permanently in the
+//    market, which is where most of the chop cost in the original came from.
+//
+// Honest expectation: measured against R5.1 with lookahead removed, not against
+// R5.1 as published. The published curve includes future data.
+// =============================================================================
+
+strategy(title                   = "OCC Gold Engine R6 (Non-Repainting)",
+         shorttitle              = "OCC Gold R6",
+         overlay                 = true,
+         pyramiding              = 0,
+         initial_capital         = 10000,
+         currency                = currency.USD,
+         default_qty_type        = strategy.fixed,
+         default_qty_value       = 1,
+         calc_on_every_tick      = false,
+         process_orders_on_close = false,
+         commission_type         = strategy.commission.cash_per_contract,
+         commission_value        = input.float(0.035, "Commission per unit/contract (USD)", minval = 0, step = 0.005, group = "0. Costs",
+                                   tooltip = "XAUUSD spot: TradingView counts qty in ounces, so $3.50 per lot per side = 0.035 here.\nMGC futures: qty is contracts, so use ~0.52 (about $1.04 round turn)."),
+         slippage                = input.int(2, "Slippage (ticks)", minval = 0, group = "0. Costs",
+                                   tooltip = "XAUUSD mintick is usually 0.01, so 2 = $0.02. MGC mintick is 0.1, so 1-2 ticks is realistic."),
+         margin_long             = 0.2,
+         margin_short            = 0.2)
+
+// =============================================================================
+// INPUTS
+// =============================================================================
+
+// --- 1. Signal timeframe -----------------------------------------------------
+grpTf        = "1. Signal Timeframe"
+useRes       = input.bool(true, "Use higher timeframe for signal", group = grpTf)
+intRes       = input.int(3, "Higher timeframe multiplier", minval = 1, maxval = 60, group = grpTf,
+               tooltip = "Signal timeframe = chart timeframe x this. 3 on M15 gives M45.")
+useConfirmed = input.bool(true, "Use only closed higher timeframe bars (non-repainting)", group = grpTf,
+               tooltip = "ON: signals are final once printed. This is the honest mode.\nOFF: signal updates while the higher timeframe bar forms and can flip mid-bar. Comparison only.")
+
+// --- 2. Open/Close moving averages ------------------------------------------
+grpMa       = "2. Open/Close MA"
+basisType   = input.string("SMMA", "MA type", group = grpMa,
+              options = ["SMA", "EMA", "DEMA", "TEMA", "WMA", "VWMA", "SMMA", "HullMA", "LSMA", "ALMA", "SSMA", "TMA"])
+basisLen    = input.int(8, "MA period", minval = 1, group = grpMa)
+offsetSigma = input.int(6, "LSMA offset / ALMA sigma", minval = 0, group = grpMa)
+offsetALMA  = input.float(0.85, "ALMA offset", minval = 0, maxval = 1, step = 0.01, group = grpMa)
+
+// --- 3. Entry filters --------------------------------------------------------
+grpFilt   = "3. Filters"
+atrLen    = input.int(14, "ATR length (signal timeframe)", minval = 1, group = grpFilt)
+enterK    = input.float(0.25, "Entry band (spread / ATR)", minval = 0.0, step = 0.05, group = grpFilt,
+            tooltip = "Trend strength must exceed this before a position is opened. 0 reproduces the original raw zero-cross. 0.20-0.40 suits gold.")
+exitK     = input.float(0.05, "Flat band (spread / ATR)", minval = 0.0, step = 0.05, group = grpFilt,
+            tooltip = "Strength falling back inside this band closes the position to flat. Must be smaller than the entry band or the strategy will churn.")
+useAdx    = input.bool(true, "Require trending regime (ADX)", group = grpFilt)
+adxLen    = input.int(14, "ADX length", minval = 1, group = grpFilt)
+adxSmooth = input.int(14, "ADX smoothing", minval = 1, group = grpFilt)
+adxMin    = input.float(18.0, "ADX minimum", minval = 0, step = 0.5, group = grpFilt)
+useTrend  = input.bool(true, "Require agreement with slow trend", group = grpFilt)
+trendLen  = input.int(50, "Slow trend EMA length (signal timeframe bars)", minval = 2, group = grpFilt)
+
+// --- 4. Risk and exits -------------------------------------------------------
+grpRisk     = "4. Risk & Exits"
+slAtrMult   = input.float(2.0, "Initial stop (x ATR)", minval = 0.1, step = 0.1, group = grpRisk)
+useTp1      = input.bool(true, "Take partial profit", group = grpRisk)
+tp1R        = input.float(1.5, "Partial target (R multiple)", minval = 0.1, step = 0.1, group = grpRisk)
+tp1Pct      = input.float(50.0, "Partial size (% of position)", minval = 1, maxval = 99, step = 5, group = grpRisk)
+beAfterTp1  = input.bool(true, "Move stop to breakeven after partial", group = grpRisk)
+useTrail    = input.bool(true, "Chandelier trailing stop", group = grpRisk)
+trailStartR = input.float(1.0, "Start trailing after (R multiple)", minval = 0.0, step = 0.1, group = grpRisk)
+trailAtrMult = input.float(2.5, "Trail distance (x ATR)", minval = 0.1, step = 0.1, group = grpRisk)
+maxDayLoss  = input.float(3.0, "Max intraday loss (% of equity)", minval = 0.1, maxval = 100, step = 0.1, group = grpRisk,
+              tooltip = "Prop-account guard. Apex and similar accounts fail on daily drawdown, so keep this below the account rule.")
+
+// --- 5. Position sizing ------------------------------------------------------
+grpSize    = "5. Position Sizing"
+preset     = input.string("XAUUSD Spot (lots)", "Instrument preset", group = grpSize,
+             options = ["XAUUSD Spot (lots)", "MGC Micro Gold Futures (contracts)", "Custom"])
+sizeMode   = input.string("Risk %", "Sizing mode", options = ["Risk %", "Fixed size"], group = grpSize)
+riskPct    = input.float(0.5, "Risk per trade (% of equity)", minval = 0.01, maxval = 10, step = 0.05, group = grpSize)
+fixedLots  = input.float(0.01, "Fixed size (lots or contracts)", minval = 0.0, step = 0.01, group = grpSize)
+autoBounds = input.bool(true, "Auto size bounds from preset", group = grpSize,
+             tooltip = "XAUUSD Spot: 0.01 to 0.03 lots, step 0.01.\nMGC Futures: 1 to 5 contracts, step 1 (futures cannot be fractional).")
+minLotsIn  = input.float(0.01, "Min size", minval = 0.0, step = 0.01, group = grpSize)
+maxLotsIn  = input.float(0.03, "Max size", minval = 0.0, step = 0.01, group = grpSize)
+lotStepIn  = input.float(0.01, "Size step", minval = 0.001, step = 0.001, group = grpSize)
+customUnit = input.float(100.0, "Custom: units per lot", minval = 0.001, group = grpSize,
+             tooltip = "How many chart quantity units make one lot. XAUUSD spot on TradingView is priced per ounce, so one 100oz lot = 100 units.")
+customPv   = input.float(1.0, "Custom: USD per 1.0 price move per unit", minval = 0.0001, group = grpSize)
+
+// --- 6. Trade window ---------------------------------------------------------
+grpWin      = "6. Trade Window"
+tradeMode   = input.string("BOTH", "Trade direction", options = ["LONG", "SHORT", "BOTH", "NONE"], group = grpWin)
+startDate   = input.time(timestamp("01 Jan 2019 00:00 +0000"), "Backtest start", group = grpWin)
+endDate     = input.time(timestamp("01 Jan 2099 00:00 +0000"), "Backtest end", group = grpWin)
+useSession  = input.bool(false, "Restrict to session", group = grpWin)
+tradeSess   = input.session("0700-2000", "Session", group = grpWin,
+              tooltip = "London plus New York overlap covers most of gold's directional movement. Asian hours are mostly range.")
+sessTz      = input.string("Europe/London", "Session timezone", group = grpWin)
+flatOnClose = input.bool(false, "Close position when session ends", group = grpWin)
+
+// --- 7. Display --------------------------------------------------------------
+grpDisp   = "7. Display"
+showBars  = input.bool(false, "Colour bars by regime", group = grpDisp)
+showStops = input.bool(true, "Plot stop level", group = grpDisp)
+showPanel = input.bool(true, "Show diagnostics panel", group = grpDisp)
+
+// =============================================================================
+// HELPERS
+// =============================================================================
+
+// Every MA is evaluated on every bar and the result is selected afterwards.
+// Selecting first and evaluating inside a branch would give ta.* functions an
+// inconsistent call history and silently corrupt their output.
+maVariant(simple string _type, float _src, simple int _len, simple int _offSig, simple float _offAlma) =>
+    float vSma  = ta.sma(_src, _len)
+    float vEma  = ta.ema(_src, _len)
+    float vDema = ta.dema(_src, _len)
+    float vTema = ta.tema(_src, _len)
+    float vWma  = ta.wma(_src, _len)
+    float vVwma = ta.vwma(_src, _len)
+    float vHull = ta.hma(_src, _len)
+    float vLsma = ta.linreg(_src, _len, _offSig)
+    float vAlma = ta.alma(_src, _len, _offAlma, _offSig)
+    float vTma  = ta.sma(vSma, _len)
+
+    // Smoothed (Wilder) moving average
+    float vSmma = 0.0
+    vSmma := na(vSmma[1]) ? vSma : (nz(vSmma[1]) * (_len - 1) + _src) / _len
+
+    // Ehlers SuperSmoother, 2013
+    float a1 = math.exp(-1.414 * math.pi / _len)
+    float b1 = 2.0 * a1 * math.cos(1.414 * math.pi / _len)
+    float c2 = b1
+    float c3 = -a1 * a1
+    float c1 = 1.0 - c2 - c3
+    float vSsma = 0.0
+    vSsma := c1 * (_src + nz(_src[1])) / 2.0 + c2 * nz(vSsma[1]) + c3 * nz(vSsma[2])
+
+    switch _type
+        "EMA"    => vEma
+        "DEMA"   => vDema
+        "TEMA"   => vTema
+        "WMA"    => vWma
+        "VWMA"   => vVwma
+        "SMMA"   => vSmma
+        "HullMA" => vHull
+        "LSMA"   => vLsma
+        "ALMA"   => vAlma
+        "TMA"    => vTma
+        "SSMA"   => vSsma
+        => vSma
+
+// Build the higher timeframe string from the chart timeframe so the multiplier
+// keeps its meaning when the chart is switched.
+htfString(simple int _mult) =>
+    int m = timeframe.multiplier * _mult
+    string res = timeframe.isseconds  ? str.tostring(m) + "S" :
+                 timeframe.isminutes  ? str.tostring(m) :
+                 timeframe.isdaily    ? str.tostring(m) + "D" :
+                 timeframe.isweekly   ? str.tostring(m) + "W" :
+                 timeframe.ismonthly  ? str.tostring(m) + "M" : timeframe.period
+    res
+
+// =============================================================================
+// SERIES
+// =============================================================================
+
+string stratRes = useRes ? htfString(intRes) : timeframe.period
+
+// Chart-context source series. request.security re-evaluates these in the
+// higher timeframe context, so the MAs are true higher timeframe MAs.
+float maCloseRaw = maVariant(basisType, close, basisLen, offsetSigma, offsetALMA)
+float maOpenRaw  = maVariant(basisType, open,  basisLen, offsetSigma, offsetALMA)
+float atrRaw     = ta.atr(atrLen)
+[_diPlus, _diMinus, adxRaw] = ta.dmi(adxLen, adxSmooth)
+
+// One bar back inside the higher timeframe context means the last fully closed
+// higher timeframe bar. Combined with lookahead_off this cannot repaint.
+float reqClose = useConfirmed ? maCloseRaw[1] : maCloseRaw
+float reqOpen  = useConfirmed ? maOpenRaw[1]  : maOpenRaw
+float reqAtr   = useConfirmed ? atrRaw[1]     : atrRaw
+float reqAdx   = useConfirmed ? adxRaw[1]     : adxRaw
+
+[maClose, maOpen, atrH, adxH] = request.security(syminfo.tickerid, stratRes,
+     [reqClose, reqOpen, reqAtr, reqAdx],
+     gaps      = barmerge.gaps_off,
+     lookahead = barmerge.lookahead_off)
+
+float spread   = maClose - maOpen
+float strength = atrH > 0 ? spread / atrH : 0.0
+float trendMa  = ta.ema(maClose, trendLen)
+
+// =============================================================================
+// SIGNAL LOGIC
+// =============================================================================
+
+bool bullState = strength >= enterK
+bool bearState = strength <= -enterK
+
+// Fire on the transition into the band, not on the state, so a stopped-out
+// trade is not immediately re-opened while the same regime persists.
+bool longTrigger  = bullState and not bullState[1]
+bool shortTrigger = bearState and not bearState[1]
+
+// Fall back inside the inner band means the edge is gone: stand flat.
+bool exitLong  = strength < exitK
+bool exitShort = strength > -exitK
+
+bool adxOk   = not useAdx   or adxH >= adxMin
+bool trendUp = not useTrend or maClose > trendMa
+bool trendDn = not useTrend or maClose < trendMa
+
+bool inWindow = time >= startDate and time <= endDate
+bool inSess   = not useSession or not na(time(timeframe.period, tradeSess, sessTz))
+bool longOk   = tradeMode == "LONG"  or tradeMode == "BOTH"
+bool shortOk  = tradeMode == "SHORT" or tradeMode == "BOTH"
+bool canTrade = inWindow and inSess and tradeMode != "NONE"
+
+// =============================================================================
+// POSITION SIZING
+// =============================================================================
+
+bool isSpot   = preset == "XAUUSD Spot (lots)"
+bool isFut    = preset == "MGC Micro Gold Futures (contracts)"
+
+// unitsPerLot   : chart quantity units in one lot / contract
+// usdPerPtUnit  : USD gained per 1.00 price move, per single quantity unit
+float unitsPerLot  = isSpot ? 100.0 : isFut ? 1.0  : customUnit
+float usdPerPtUnit = isSpot ? 1.0   : isFut ? 10.0 : customPv
+
+float minLots = autoBounds ? (isSpot ? 0.01 : isFut ? 1.0 : minLotsIn) : minLotsIn
+float maxLots = autoBounds ? (isSpot ? 0.03 : isFut ? 5.0 : maxLotsIn) : maxLotsIn
+float lotStep = autoBounds ? (isSpot ? 0.01 : isFut ? 1.0 : lotStepIn) : lotStepIn
+
+float stopDist = slAtrMult * atrH
+float riskUsd  = strategy.equity * riskPct / 100.0
+
+float rawLots = sizeMode == "Fixed size" ? fixedLots :
+                stopDist > 0 and usdPerPtUnit > 0 and unitsPerLot > 0 ?
+                    riskUsd / (stopDist * usdPerPtUnit * unitsPerLot) : 0.0
+
+// Round down to the tradable step, then clamp to the account's allowed range.
+float steppedLots = lotStep > 0 ? math.floor(rawLots / lotStep) * lotStep : rawLots
+float sizedLots   = math.min(maxLots, math.max(minLots, steppedLots))
+float orderQty    = sizedLots * unitsPerLot
+
+// =============================================================================
+// TRADE MANAGEMENT STATE
+// =============================================================================
+
+var float entryPx   = na
+var float entryAtr  = na
+var float initStop  = na
+var float trailStop = na
+var float extreme   = na
+
+float posSign  = math.sign(strategy.position_size)
+float prevSign = nz(math.sign(strategy.position_size[1]))
+bool  freshPos = posSign != 0 and posSign != prevSign
+
+if freshPos
+    entryPx   := strategy.position_avg_price
+    entryAtr  := atrH
+    initStop  := posSign > 0 ? entryPx - slAtrMult * entryAtr : entryPx + slAtrMult * entryAtr
+    trailStop := na
+    extreme   := posSign > 0 ? high : low
+
+float rDist = nz(entryAtr) * slAtrMult
+
+// Partial fill detected: size shrank without the position closing.
+bool partialFilled = strategy.position_size != 0 and
+                     math.abs(strategy.position_size) < math.abs(nz(strategy.position_size[1]))
+
+if useTp1 and beAfterTp1 and partialFilled
+    initStop := posSign > 0 ? math.max(nz(initStop, entryPx), entryPx) : math.min(nz(initStop, entryPx), entryPx)
+
+if strategy.position_size > 0
+    extreme := math.max(nz(extreme, high), high)
+    if useTrail and rDist > 0 and (extreme - entryPx) >= trailStartR * rDist
+        float longTrail = extreme - trailAtrMult * atrH
+        trailStop := math.max(nz(trailStop, longTrail), longTrail)
+
+if strategy.position_size < 0
+    extreme := math.min(nz(extreme, low), low)
+    if useTrail and rDist > 0 and (entryPx - extreme) >= trailStartR * rDist
+        float shortTrail = extreme + trailAtrMult * atrH
+        trailStop := math.min(nz(trailStop, shortTrail), shortTrail)
+
+float stopLevel = strategy.position_size > 0 ? math.max(nz(initStop, entryPx), nz(trailStop, nz(initStop, entryPx))) :
+                  strategy.position_size < 0 ? math.min(nz(initStop, entryPx), nz(trailStop, nz(initStop, entryPx))) : na
+
+float tp1Level = strategy.position_size > 0 ? entryPx + tp1R * rDist :
+                 strategy.position_size < 0 ? entryPx - tp1R * rDist : na
+
+// =============================================================================
+// ORDERS
+// =============================================================================
+
+strategy.risk.max_intraday_loss(maxDayLoss, strategy.percent_of_equity)
+
+if canTrade and orderQty > 0
+    if longTrigger and longOk and adxOk and trendUp
+        strategy.entry("L", strategy.long, qty = orderQty,
+             alert_message = "OCC Gold R6 LONG " + syminfo.ticker + " qty " + str.tostring(orderQty))
+    if shortTrigger and shortOk and adxOk and trendDn
+        strategy.entry("S", strategy.short, qty = orderQty,
+             alert_message = "OCC Gold R6 SHORT " + syminfo.ticker + " qty " + str.tostring(orderQty))
+
+// Stand flat when the edge disappears, before waiting for an opposite signal.
+if strategy.position_size > 0 and exitLong
+    strategy.close("L", comment = "flat: strength faded")
+if strategy.position_size < 0 and exitShort
+    strategy.close("S", comment = "flat: strength faded")
+
+// Protective orders, refreshed every bar so the trail can move.
+if strategy.position_size > 0
+    if useTp1
+        strategy.exit("L-TP1", from_entry = "L", qty_percent = tp1Pct, limit = tp1Level, stop = stopLevel)
+    strategy.exit("L-STOP", from_entry = "L", stop = stopLevel)
+
+if strategy.position_size < 0
+    if useTp1
+        strategy.exit("S-TP1", from_entry = "S", qty_percent = tp1Pct, limit = tp1Level, stop = stopLevel)
+    strategy.exit("S-STOP", from_entry = "S", stop = stopLevel)
+
+// Housekeeping: never hold outside the tested window or the traded session.
+if not inWindow
+    strategy.close_all(comment = "outside test window")
+if useSession and flatOnClose and not inSess
+    strategy.close_all(comment = "session end")
+
+// =============================================================================
+// PLOTTING
+// =============================================================================
+
+color colUp   = color.new(#26A69A, 0)
+color colDn   = color.new(#EF5350, 0)
+color colFlat = color.new(#787B86, 0)
+
+color regimeCol = bullState ? colUp : bearState ? colDn : colFlat
+
+plotClose = plot(maClose, "MA Close", color = regimeCol, linewidth = 2)
+plotOpen  = plot(maOpen,  "MA Open",  color = regimeCol, linewidth = 2)
+fill(plotClose, plotOpen, color = color.new(regimeCol, 85), title = "OC Band")
+
+plot(useTrend ? trendMa : na, "Slow Trend", color = color.new(#FF9800, 40), linewidth = 1)
+plot(showStops and strategy.position_size != 0 ? stopLevel : na, "Stop", color = color.new(#EF5350, 0),
+     style = plot.style_linebr, linewidth = 1)
+plot(showStops and useTp1 and strategy.position_size != 0 ? tp1Level : na, "Partial target",
+     color = color.new(#26A69A, 0), style = plot.style_linebr, linewidth = 1)
+
+barcolor(showBars ? regimeCol : na, title = "Regime bars")
+
+plotshape(canTrade and longTrigger  and longOk  and adxOk and trendUp, "Long signal",
+     shape.triangleup,   location.belowbar, colUp, size = size.tiny)
+plotshape(canTrade and shortTrigger and shortOk and adxOk and trendDn, "Short signal",
+     shape.triangledown, location.abovebar, colDn, size = size.tiny)
+
+// =============================================================================
+// DIAGNOSTICS PANEL
+// =============================================================================
+
+if showPanel and barstate.islast
+    var table panel = table.new(position.top_right, 2, 8, border_width = 1,
+         frame_color = color.new(color.gray, 50), frame_width = 1)
+    table.cell(panel, 0, 0, "OCC Gold R6", text_color = color.white, bgcolor = color.new(color.blue, 20))
+    table.cell(panel, 1, 0, useConfirmed ? "confirmed" : "LIVE (repaints)",
+         text_color = color.white, bgcolor = useConfirmed ? color.new(color.green, 30) : color.new(color.red, 30))
+    table.cell(panel, 0, 1, "Signal TF",  text_color = color.gray)
+    table.cell(panel, 1, 1, stratRes,     text_color = color.white)
+    table.cell(panel, 0, 2, "Strength",   text_color = color.gray)
+    table.cell(panel, 1, 2, str.tostring(strength, "#.##") + "  (band " + str.tostring(enterK, "#.##") + ")",
+         text_color = bullState ? colUp : bearState ? colDn : colFlat)
+    table.cell(panel, 0, 3, "ADX",        text_color = color.gray)
+    table.cell(panel, 1, 3, str.tostring(adxH, "#.#"), text_color = adxOk ? color.white : color.gray)
+    table.cell(panel, 0, 4, "ATR",        text_color = color.gray)
+    table.cell(panel, 1, 4, str.tostring(atrH, format.mintick), text_color = color.white)
+    table.cell(panel, 0, 5, "Next size",  text_color = color.gray)
+    table.cell(panel, 1, 5, str.tostring(sizedLots, "#.###") + (isFut ? " contracts" : " lots"), text_color = color.white)
+    table.cell(panel, 0, 6, "Position",   text_color = color.gray)
+    table.cell(panel, 1, 6, strategy.position_size == 0 ? "flat" : str.tostring(strategy.position_size, "#.##"),
+         text_color = color.white)
+    table.cell(panel, 0, 7, "Stop / R",   text_color = color.gray)
+    table.cell(panel, 1, 7, strategy.position_size == 0 ? "-" :
+         str.tostring(stopLevel, format.mintick) + " / " + str.tostring(rDist, format.mintick),
+         text_color = color.white)
+
+// =============================================================================
+// ALERTS
+// =============================================================================
+
+alertcondition(bullState and not bullState[1], "OCC Gold R6: Long signal",  "OCC Gold R6 long signal on {{ticker}} at {{close}}")
+alertcondition(bearState and not bearState[1], "OCC Gold R6: Short signal", "OCC Gold R6 short signal on {{ticker}} at {{close}}")
+alertcondition(strength < exitK and strength[1] >= exitK,   "OCC Gold R6: Long flat",  "OCC Gold R6 long edge faded on {{ticker}}")
+alertcondition(strength > -exitK and strength[1] <= -exitK, "OCC Gold R6: Short flat", "OCC Gold R6 short edge faded on {{ticker}}")
+
+// eof
