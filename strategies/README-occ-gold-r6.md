@@ -73,7 +73,8 @@ R5.1 limited history with `timenow`, so results shifted every day. R6 uses fixed
   0.01 lots = 1 unit, 0.03 lots = 3 units.
 - Auto size bounds give 0.01 to 0.03 lots in 0.01 steps.
 - Commission: raw-spread accounts charge roughly $3.50 per lot per side. Since quantity is in ounces,
-  enter `0.035` in "Commission per unit/contract".
+  that is `commission_value = 0.035`. Pine only accepts constants in the `strategy()` declaration, so
+  commission and slippage are literals at the top of the file rather than inputs — edit them there.
 - Slippage: mintick is normally 0.01, so 2-3 ticks is realistic during London and New York, more
   around news.
 - 500x leverage means margin is not the binding constraint; the stop distance and risk percentage are.
@@ -88,8 +89,9 @@ R5.1 limited history with `timenow`, so results shifted every day. R6 uses fixed
 - Auto size bounds give 1 to 5 contracts in steps of 1. Futures contracts cannot be fractional, so the
   "0.2 - 0.5 lots" sizing you described has to be expressed as a whole number of contracts — confirm
   what that maps to on your Apex account and adjust the min/max inputs if it is not 1 to 5.
-- Commission: about $1.04 round turn through Tradovate on Apex, so roughly `0.52` per side.
-- Slippage: 1-2 ticks.
+- Commission: about $1.04 round turn through Tradovate on Apex, so roughly `commission_value = 0.52`
+  per side. Edit it in the `strategy()` declaration; it cannot be an input.
+- Slippage: 1-2 ticks, also set in the declaration.
 - Set "Max intraday loss" below your Apex daily drawdown limit. The trailing threshold drawdown on
   evaluation accounts is stricter than the intraday rule, so treat this as a floor, not a guarantee.
 

@@ -51,11 +51,15 @@ strategy(title                   = "OCC Gold Engine R6 (Non-Repainting)",
          default_qty_value       = 1,
          calc_on_every_tick      = false,
          process_orders_on_close = false,
+         // Costs must be literals: strategy() only accepts const values here, so
+         // they cannot be exposed as inputs. Edit these two numbers per broker.
+         //   XAUUSD spot (Blackbull): quantity is counted in ounces, so $3.50
+         //   per 100oz lot per side = 0.035. Mintick 0.01, so slippage 2 = $0.02.
+         //   MGC futures (Apex/Tradovate): quantity is contracts, so ~0.52 per
+         //   side (about $1.04 round turn). Mintick 0.1, so slippage 1-2.
          commission_type         = strategy.commission.cash_per_contract,
-         commission_value        = input.float(0.035, "Commission per unit/contract (USD)", minval = 0, step = 0.005, group = "0. Costs",
-                                   tooltip = "XAUUSD spot: TradingView counts qty in ounces, so $3.50 per lot per side = 0.035 here.\nMGC futures: qty is contracts, so use ~0.52 (about $1.04 round turn)."),
-         slippage                = input.int(2, "Slippage (ticks)", minval = 0, group = "0. Costs",
-                                   tooltip = "XAUUSD mintick is usually 0.01, so 2 = $0.02. MGC mintick is 0.1, so 1-2 ticks is realistic."),
+         commission_value        = 0.035,
+         slippage                = 2,
          margin_long             = 0.2,
          margin_short            = 0.2)
 
@@ -149,9 +153,14 @@ showPanel = input.bool(true, "Show diagnostics panel", group = grpDisp)
 maVariant(simple string _type, float _src, simple int _len, simple int _offSig, simple float _offAlma) =>
     float vSma  = ta.sma(_src, _len)
     float vEma  = ta.ema(_src, _len)
-    float vDema = ta.dema(_src, _len)
-    float vTema = ta.tema(_src, _len)
     float vWma  = ta.wma(_src, _len)
+
+    // Pine has no ta.dema / ta.tema builtins, so build them from nested EMAs.
+    float ema2  = ta.ema(vEma, _len)
+    float ema3  = ta.ema(ema2, _len)
+    float vDema = 2.0 * vEma - ema2
+    float vTema = 3.0 * (vEma - ema2) + ema3
+
     float vVwma = ta.vwma(_src, _len)
     float vHull = ta.hma(_src, _len)
     float vLsma = ta.linreg(_src, _len, _offSig)
